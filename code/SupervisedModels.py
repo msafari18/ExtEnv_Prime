@@ -8,6 +8,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from src.utils import SummaryFasta, kmersFasta
 import argparse
+
+import warnings
 warnings.filterwarnings("ignore")
 
 
