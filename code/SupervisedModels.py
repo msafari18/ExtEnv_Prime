@@ -26,6 +26,18 @@ def load_json_results(path, continue_flag):
         return {int(k): v for k, v in data.items()}
     return {}
 
+def preprocess_data(args, summary_file):
+    summary_dataset = pd.read_csv(summary_file, sep='\t', usecols=["Domain", "Temperature", "Assembly", "pH", "Genus", "Species"])
+    fasta_file = os.path.join(args["results_folder"], args["Env"], f'Extremophiles_{args["Env"]}.fas')
+    names, _, _, _ = SummaryFasta(fasta_file)
+    assembly_dict = dict(zip(summary_dataset['Assembly'], summary_dataset.index))
+
+    processed_data = {
+        key: summary_dataset.loc[assembly_dict.get(name), key] if name in assembly_dict else None for name in names for key in ["Genus", "Species", "Domain", args["Env"]]
+    }
+    processed_data.update({"sequence_id": names, "Assembly": [assembly_dict.get(name) for name in names]})
+    return pd.DataFrame(processed_data)
+
 def supervised_classification(fasta_file, max_k, results, result_folder, env, exp):
     names, _, _, _ = SummaryFasta(fasta_file)
     results_dict = {k: {} for k in range(1, max_k + 1)}
@@ -47,6 +59,8 @@ def perform_classification(kmers, results, k, result_folder, env):
                                 'activation': 'relu', 'alpha': 1, 'learning_rate_init': 0.001,
                                 'max_iter': 200, 'n_iter_no_change': 10})
     }
+
+
     env_file = os.path.join(result_folder, env, f'Extremophiles_{env}_GT_Env.tsv')
     tax_file = os.path.join(result_folder, env, f'Extremophiles_{env}_GT_Tax.tsv')
     for index, data_file in enumerate([env_file, tax_file]):
@@ -81,9 +95,7 @@ def run(args):
     results_path = f'Supervised Results {args["Env"]}.json'
     results = load_json_results(results_path, args['continue'])
     fasta_file = os.path.join(args["results_folder"], args["Env"], 'Extremophiles_{args["Env"]}.fas')
-    supervised_classification(fasta_file, args["max_k"], results, args["results_folder"], args["Env"])
-
-
+    supervised_classification(fasta_file, args["max_k"], results, args["results_folder"], args["Env"], args["exp"])
 
 def main():
     parser = argparse.ArgumentParser()
