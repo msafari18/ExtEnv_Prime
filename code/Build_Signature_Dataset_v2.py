@@ -51,7 +51,7 @@ def max_subfragments(L, l, max_num_part):
             return n
     return 1
 
-def produce_fragment_v2(names , seqs, min_len, is_whole_genome=False, max_num_part=10):
+def produce_fragment(names , seqs, min_len, is_whole_genome=False, max_num_part=10):
     if is_whole_genome:
         return ''.join(seq + 'N' for seq in seqs)
 
@@ -133,7 +133,7 @@ def process_environmental_data(dataset_env, env_folder, env_type, args):
             assembly = row['Assembly']
             domain = row['Domain']
 
-            fragment = produce_fragment_v2(seq_names, seqs, args['fragment_len'], is_whole_genome=args['whole_genome'])
+            fragment = produce_fragment(seq_names, seqs, args['fragment_len'], is_whole_genome=args['whole_genome'])
 
             acc = assembly
             aux_dataset.append([acc, assembly, domain, row[env_type], domain + '_' + env_type,
