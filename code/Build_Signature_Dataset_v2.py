@@ -6,8 +6,8 @@ import random
 
 plt.rcParams["font.family"] = "Times New Roman"
 
-def summary_fasta(filename, min_len):
 
+def summary_fasta(filename, min_len):
     names, seqs, plasmids = [], [], []
     seq_id = ""
     lines = []
@@ -33,8 +33,8 @@ def summary_fasta(filename, min_len):
 
     return names, seqs, plasmids
 
-def process_sequence(lines, seq_id, min_len, names, seqs, plasmids):
 
+def process_sequence(lines, seq_id, min_len, names, seqs, plasmids):
     sequence = "".join(lines)
     if len(sequence) >= min_len:
         if 'plasmid' in seq_id.lower():
@@ -51,7 +51,8 @@ def max_subfragments(L, l, max_num_part):
             return n
     return 1
 
-def produce_fragment(names , seqs, min_len, is_whole_genome=False, max_num_part=10):
+
+def produce_fragment(names, seqs, min_len, is_whole_genome=False, max_num_part=10):
     if is_whole_genome:
         return ''.join(seq + 'N' for seq in seqs)
 
@@ -88,6 +89,7 @@ def produce_fragment(names , seqs, min_len, is_whole_genome=False, max_num_part=
 
     return fragment
 
+
 def run(args):
     path = args['path']
     new_folder_path = os.path.join(path, args['new_folder_name'])
@@ -106,7 +108,7 @@ def run(args):
         # Filter dataset for non-null environmental values
         dataset_env = dataset[dataset[_dataset].notnull()]
 
-        process_environmental_data(dataset_env, env_folder, _dataset, args)
+        process_environmental_data(dataset_env, path, env_folder, _dataset, args)
 
 
 def filter_assemblies(dataset, path):
@@ -119,12 +121,12 @@ def filter_assemblies(dataset, path):
     return dataset[~dataset['Assembly'].isin(removed)]
 
 
-def process_environmental_data(dataset_env, env_folder, env_type, args):
+def process_environmental_data(dataset_env, path, env_folder, env_type, args):
     aux_dataset = []
 
     for index, row in dataset_env.iterrows():
 
-        assembly_path = os.path.join(env_folder, f"/Assemblies/row['Assembly']")
+        assembly_path = f'{path}/Assemblies/{row["Assembly"]}'
         seq_names, seqs = process_assembly(assembly_path, row, env_folder, env_type, aux_dataset, args)
         if seq_names == None or seqs == None:
             print(f'Assembly {row["Assembly"]} not found')
@@ -141,7 +143,7 @@ def process_environmental_data(dataset_env, env_folder, env_type, args):
                                 row['Genus'], row['Species'], row['tax_cluster_id'], len(fragment)])
 
             fasta = ('>%s\n%s\n' % (acc, fragment))
-            with open(f'{env_folder}/{args["new_folder_name"]}/{env_type}/Extremophiles_{env_type}.fas', 'a') as f:
+            with open(f'{env_folder}/Extremophiles_{env_type}.fas', 'a') as f:
                 f.write(fasta)
 
     # Generate summary files
@@ -157,7 +159,6 @@ def process_environmental_data(dataset_env, env_folder, env_type, args):
 
 
 def process_assembly(assembly_path, row, env_folder, env_type, aux_dataset, args):
-
     fasta_file = os.listdir(assembly_path)[0] if os.listdir(assembly_path) else None
     _min = 0
 
