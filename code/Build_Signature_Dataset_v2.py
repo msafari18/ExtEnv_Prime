@@ -123,7 +123,8 @@ def process_environmental_data(dataset_env, env_folder, env_type, args):
     aux_dataset = []
 
     for index, row in dataset_env.iterrows():
-        assembly_path = os.path.join(env_folder, row['Assembly'])
+
+        assembly_path = os.path.join(env_folder, f"/Assemblies/row['Assembly']")
         seq_names, seqs = process_assembly(assembly_path, row, env_folder, env_type, aux_dataset, args)
         if seq_names == None or seqs == None:
             print(f'Assembly {row["Assembly"]} not found')
@@ -156,6 +157,7 @@ def process_environmental_data(dataset_env, env_folder, env_type, args):
 
 
 def process_assembly(assembly_path, row, env_folder, env_type, aux_dataset, args):
+
     fasta_file = os.listdir(assembly_path)[0] if os.listdir(assembly_path) else None
     _min = 0
 
