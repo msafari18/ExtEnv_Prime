@@ -11,7 +11,7 @@ from src.utils import SummaryFasta, kmersFasta
 import torch
 
 def save_results(results, dataset, result_folder, run):
-    file_path = os.path.join(result_folder, f'Supervised_Results_no_Genus_new{dataset}.json')
+    file_path = os.path.join(result_folder, f'Supervised_Results_no_Genus{dataset}.json')
     if os.path.isfile(file_path):
         with open(file_path, 'r') as file:
             existing_data = json.load(file)
@@ -83,7 +83,7 @@ def cross_validate_model(data, kmers, label_file, algorithm, params):
     return np.mean(scores)
 
 def run(args):
-    results_path = f'Supervised Results no Genus {args["Env"]}.json'
+    results_path = f'Supervised_Results_no_Genus_{args["Env"]}.json'
     results = load_results(results_path, args['continue'])
     fasta_file = os.path.join(args["results_folder"], args["Env"], f'Extremophiles_{args["Env"]}.fas')
     perform_classification(fasta_file, results, args["results_folder"], args["Env"], args["max_k"], args["exp"])

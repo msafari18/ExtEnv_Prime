@@ -1,18 +1,11 @@
-
 import sys
-import os
 import numpy as np
-import pandas as pd
-
-
 from sklearn.pipeline import Pipeline
 from sklearn import mixture
 from sklearn.cluster import KMeans
 from sklearn_extra.cluster import KMedoids
-
-
 sys.path.append('src')
-from utils import SummaryFasta, cluster_acc, kmersFasta, modified_cluster_acc
+from src.utils import SummaryFasta, cluster_acc, kmersFasta, modified_cluster_acc
 from idelucs.cluster import iDeLUCS_cluster
 
 
@@ -51,7 +44,7 @@ def K_MEDOIDS(sequence_file, n_cluster, k=6):
 def GMM(sequence_file, n_cluster, k=6):
     sys.stdout.write("......... Gaussian Mixture ...............\n")
     sys.stdout.flush()
-    names, kmers = kmersFasta(sequence_file, k=6)
+    names, kmers = kmersFasta(sequence_file, k=k)
     pipeline = build_pipeline(n_cluster, 'GMM')
     y_pred = pipeline.fit_predict(kmers)
     return y_pred
@@ -69,17 +62,11 @@ def iDeLUCS(sequence_file,n_clusters, k=6):
 def run(args):
 
     dataset = args["Env"]
-
     sequence_file = f'{args["results_folder"]}/{args["Env"]}/Extremophiles_{args["Env"]}.fas' 
     GT_file = f'{args["results_folder"]}/{args["Env"]}/Extremophiles_{dataset}_GT_Env.tsv'
-
     names, lengths, GT, cluster_dis = SummaryFasta(sequence_file, GT_file)
-
     unique_labels = list(np.unique(GT))
-    numClasses = len(unique_labels)
     y_true = np.array(list(map(lambda x: unique_labels.index(x), GT)))
-
-
     clust_algorithms = [("k-means", K_MEANS), 
                         ("k-medoids", K_MEDOIDS),
                         ("GMM", GMM),
@@ -89,7 +76,6 @@ def run(args):
         assignments = clust_algo(sequence_file, args["n_clusters"])
         ind, acc = cluster_acc(assignments, y_true)
         print(f"{name}: {acc*100}%")
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -103,15 +89,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-#!/bin/bash
-#SBATCH --account=def-lila-ab_gpu
-#SBATCH --gpus-per-node=t4:1
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=32000M
-#SBATCH --time=8:00:00
-
-module avail python
-module load python/3.10
-source ENV/bin/activate
