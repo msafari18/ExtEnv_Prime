@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from src.utils import SummaryFasta, kmersFasta
 import argparse
+warnings.filterwarnings("ignore")
 
 
 def save_results(result, dataset, result_folder, run):
@@ -29,16 +30,18 @@ def load_json_results(path, continue_flag):
     return {}
 
 
-def supervised_classification(fasta_file, max_k, results, result_folder, env, exp):
+def supervised_classification(fasta_file, max_k, result_folder, env, exp):
+    results_json = {}
     for k in range(1, max_k + 1):
+        results_json[k] = {}
         _, kmers = kmersFasta(fasta_file, k=k, transform=None, reduce=True)
         kmers_normalized = np.transpose((np.transpose(kmers) / np.linalg.norm(kmers, axis=1)))
-        results = {key: {} for key in range(1, max_k + 1)}
-        perform_classification(kmers_normalized, k, results, result_folder, env, exp)
+        results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env, exp)
         print(f"Finished processing k = {k}")
 
+    save_results(results_json, env, result_folder, exp)
 
-def perform_classification(kmers, k, results, result_folder, env, exp):
+def perform_classification(kmers, k, results_json, result_folder, env, exp):
     classifiers = {
         "SVM": (SVC, {'kernel': 'rbf', 'class_weight': 'balanced', 'C': 10}),
         "Random Forest": (RandomForestClassifier, {}),
@@ -51,12 +54,12 @@ def perform_classification(kmers, k, results, result_folder, env, exp):
     tax_file = os.path.join(result_folder, env, f'Extremophiles_{env}_GT_Tax.tsv')
 
     for name, (algorithm, params) in classifiers.items():
-        results[k][name] = [0, 0]
+        results_json[k][name] = [0, 0]
         for index, label_file in enumerate([env_file, tax_file]):
             label_data = pd.read_csv(label_file, sep='\t')
-            results[k][name][index] = cross_validate_model(kmers, label_data, algorithm, params)
-    save_results(results, env, result_folder, exp)
+            results_json[k][name][index] = cross_validate_model(kmers, label_data, algorithm, params)
 
+    return results_json
 
 def cross_validate_model(kmers, label_data, algorithm, params):
     unique_labels = list(label_data['cluster_id'].unique())
@@ -66,7 +69,7 @@ def cross_validate_model(kmers, label_data, algorithm, params):
     idx = Dataset.drop_duplicates(subset=["Assembly"]).Assembly.to_numpy()
     y = Dataset.drop_duplicates(subset=["Assembly"]).cluster_id.to_numpy()
     n_samples, n_features = kmers.shape
-    print(len(Dataset), n_features)
+    print(n_samples, n_features)
     scores = []
 
     for train, test in skf.split(idx, y):
@@ -83,19 +86,19 @@ def cross_validate_model(kmers, label_data, algorithm, params):
                           test_Dataset.loc[:, ['cluster_id']].to_numpy().reshape(-1)))
 
         model.fit(x_train, y_train)
-        scores.append(model.score(x_test, y_test))
+        score = model.score(x_test, y_test)
+        scores.append(score)
 
         del model
 
     average_score = sum(scores) / len(scores)
+    print(average_score)
     return average_score
 
 
 def run(args):
-    results_path = f'Supervised_Results_{args["Env"]}.json'
-    results = load_json_results(results_path, args['continue'])
     fasta_file = os.path.join(args["results_folder"], args["Env"], f'Extremophiles_{args["Env"]}.fas')
-    supervised_classification(fasta_file, args["max_k"], results, args["results_folder"], args["Env"], args["exp"])
+    supervised_classification(fasta_file, args["max_k"], args["results_folder"], args["Env"], args["exp"])
 
 
 def main():
