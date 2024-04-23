@@ -10,6 +10,7 @@ from src.utils import SummaryFasta, kmersFasta
 import argparse
 
 import warnings
+
 warnings.filterwarnings("ignore")
 
 
@@ -43,6 +44,7 @@ def supervised_classification(fasta_file, max_k, result_folder, env, exp):
 
     save_results(results_json, env, result_folder, exp)
 
+
 def perform_classification(kmers, k, results_json, result_folder, env, exp):
     classifiers = {
         "SVM": (SVC, {'kernel': 'rbf', 'class_weight': 'balanced', 'C': 10}),
@@ -63,33 +65,30 @@ def perform_classification(kmers, k, results_json, result_folder, env, exp):
 
     return results_json
 
+
 def cross_validate_model(kmers, label_data, algorithm, params):
-    unique_labels = list(label_data['cluster_id'].unique())
-    Dataset = pd.concat([label_data, pd.DataFrame(kmers)], axis=1)
-    Dataset.dropna(inplace=True)
+    label_data.reset_index(drop=True, inplace=True)  # Reset index if not already aligned
+    kmers_df = pd.DataFrame(kmers)
+    Dataset = pd.concat([label_data['cluster_id'], kmers_df], axis=1).dropna()
+
+    # Prepare data for cross-validation
     skf = StratifiedKFold(n_splits=10, shuffle=True)
-    idx = Dataset.drop_duplicates(subset=["Assembly"]).Assembly.to_numpy()
-    y = Dataset.drop_duplicates(subset=["Assembly"]).cluster_id.to_numpy()
-    n_samples, n_features = kmers.shape
-    print(n_samples, n_features)
+    unique_labels = list(label_data['cluster_id'].unique())
+    label_index_map = {label: idx for idx, label in enumerate(unique_labels)}
+
     scores = []
 
-    for train, test in skf.split(idx, y):
+    for train_idx, test_idx in skf.split(Dataset, Dataset['cluster_id']):
         model = algorithm(**params)
-        train_Dataset = Dataset.set_index("Assembly").loc[idx[train]].reset_index()
-        test_Dataset = Dataset.set_index("Assembly").loc[idx[test]].reset_index()
+        x_train, y_train = Dataset.iloc[train_idx].drop('cluster_id', axis=1), Dataset.iloc[train_idx]['cluster_id']
+        x_test, y_test = Dataset.iloc[test_idx].drop('cluster_id', axis=1), Dataset.iloc[test_idx]['cluster_id']
 
-        x_train = train_Dataset.loc[:, list(range(n_features))].to_numpy()
-        y_train = list(map(lambda x: unique_labels.index(x),
-                           train_Dataset.loc[:, ['cluster_id']].to_numpy().reshape(-1)))
-
-        x_test = test_Dataset.loc[:, list(range(n_features))].to_numpy()
-        y_test = list(map(lambda x: unique_labels.index(x),
-                          test_Dataset.loc[:, ['cluster_id']].to_numpy().reshape(-1)))
+        # Convert labels to indices
+        y_train = [label_index_map[label] for label in y_train]
+        y_test = [label_index_map[label] for label in y_test]
 
         model.fit(x_train, y_train)
-        score = model.score(x_test, y_test)
-        scores.append(score)
+        scores.append(model.score(x_test, y_test))
 
         del model
 

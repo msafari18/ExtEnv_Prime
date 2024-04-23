@@ -1,4 +1,3 @@
-import argparse
 import json
 import os
 import pandas as pd
@@ -8,23 +7,28 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from src.utils import SummaryFasta, kmersFasta
-import torch
+import argparse
 
-def save_results(results, dataset, result_folder, run):
-    file_path = os.path.join(result_folder, f'Supervised_Results_no_Genus{dataset}.json')
+import warnings
+warnings.filterwarnings("ignore")
+
+
+def save_results(result, dataset, result_folder, run):
+    file_path = os.path.join(result_folder, f'Supervised_Results_{dataset}.json')
+    existing_data = {}
     if os.path.isfile(file_path):
         with open(file_path, 'r') as file:
             existing_data = json.load(file)
-    else:
-        existing_data = {}
-    existing_data[run] = results
+    existing_data[run] = result
     with open(file_path, 'w') as file:
         json.dump(existing_data, file, indent=2)
 
-def load_results(file_path, continue_flag):
-    if os.path.isfile(file_path) and continue_flag:
-        with open(file_path, 'r') as file:
-            return {int(k): v for k, v in json.load(file).items()}
+
+def load_json_results(path, continue_flag):
+    if os.path.isfile(path) and continue_flag:
+        with open(path, 'r') as file:
+            data = json.load(file)
+        return {int(k): v for k, v in data.items()}
     return {}
 
 def preprocess_data(fasta_file, summary_file):
@@ -42,62 +46,95 @@ def preprocess_data(fasta_file, summary_file):
     })
     return data
 
-def perform_classification(fasta_file, results, result_folder, env, max_k, exp):
+
+def supervised_classification(fasta_file, max_k, result_folder, env, exp):
+    results_json = {}
     data = preprocess_data(fasta_file, "/path/to/Extremophiles_GTDB.tsv")
+    for k in range(1, max_k + 1):
+        results_json[k] = {}
+        _, kmers = kmersFasta(fasta_file, k=k, transform=None, reduce=True)
+        kmers_normalized = np.transpose((np.transpose(kmers) / np.linalg.norm(kmers, axis=1)))
+        results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env, data)
+        print(f"Finished processing k = {k}")
+
+    save_results(results_json, env, result_folder, exp)
+
+def perform_classification(kmers, k, results_json, result_folder, env, data):
     classifiers = {
         "SVM": (SVC, {'kernel': 'rbf', 'class_weight': 'balanced', 'C': 10}),
         "Random Forest": (RandomForestClassifier, {}),
         "ANN": (MLPClassifier, {'hidden_layer_sizes': (256, 64), 'solver': 'adam',
                                 'activation': 'relu', 'alpha': 1, 'learning_rate_init': 0.001,
-                                'max_iter': 200, 'n_iter_no_change': 10})
+                                'max_iter': 300, 'n_iter_no_change': 10})
     }
+
     env_file = os.path.join(result_folder, env, f'Extremophiles_{env}_GT_Env.tsv')
     tax_file = os.path.join(result_folder, env, f'Extremophiles_{env}_GT_Tax.tsv')
 
-    for k in range(1, max_k + 1):
-        _, kmers = kmersFasta(fasta_file, k=k, reduce=True)
+    for name, (algorithm, params) in classifiers.items():
+        results_json[k][name] = [0, 0]
         for index, label_file in enumerate([env_file, tax_file]):
-            results.setdefault(k, {})
-            for name, (algorithm, params) in classifiers.items():
-                if name in results[k]:
-                    continue
-                results[k][name][index] = cross_validate_model(data, kmers, label_file, algorithm, params)
+            label_data = pd.read_csv(label_file, sep='\t')
+            results_json[k][name][index] = cross_validate_model(kmers, label_data, algorithm, params, data)
 
-    save_results(results, env, result_folder, exp)
+    return results_json
 
-def cross_validate_model(data, kmers, label_file, algorithm, params):
-    dataset = pd.read_csv(label_file, sep='\t')
-    unique_labels = dataset['cluster_id'].unique()
-    skf = StratifiedGroupKFold(n_splits=10, shuffle=True)
+def cross_validate_model(kmers, label_data, algorithm, params, data):
+    unique_labels = list(label_data['cluster_id'].unique())
+    Dataset = pd.concat([label_data, pd.DataFrame(kmers)], axis=1)
+    Dataset.dropna(inplace=True)
+    skf = StratifiedGroupKFold(n_splits=10)
+
+    idx = Dataset.drop_duplicates(subset=["Assembly"]).Assembly.to_numpy()
+    y = Dataset.cluster_id.to_numpy()
+
+    n_samples, n_features = kmers.shape
+    print(n_samples, n_features)
     scores = []
-    for train_idx, test_idx in skf.split(dataset, dataset['cluster_id'], groups=data["genus"].values):
+
+    for train, test in skf.split(idx , y, groups=data["genus"].values):
         model = algorithm(**params)
-        train_dataset = dataset.iloc[train_idx]
-        test_dataset = dataset.iloc[test_idx]
-        x_train = kmers[train_dataset.index]
-        y_train = [np.where(unique_labels == label)[0][0] for label in train_dataset['cluster_id']]
-        x_test = kmers[test_dataset.index]
-        y_test = [np.where(unique_labels == label)[0][0] for label in test_dataset['cluster_id']]
+        train_Dataset = Dataset.iloc[train]
+        test_Dataset = Dataset.iloc[test]
+        x_train = train_Dataset.loc[:, list(range(n_features))].to_numpy()
+        y_train = list(
+            map(lambda x: unique_labels.index(x), train_Dataset.loc[:, ['cluster_id']].to_numpy().reshape(-1)))
+
+        x_test = test_Dataset.loc[:, list(range(n_features))].to_numpy()
+        y_test = list(
+            map(lambda x: unique_labels.index(x), test_Dataset.loc[:, ['cluster_id']].to_numpy().reshape(-1)))
+
         model.fit(x_train, y_train)
-        scores.append(model.score(x_test, y_test))
-    return np.mean(scores)
+        score = model.score(x_test, y_test)
+        scores.append(score)
+        del model
+
+    average_score = sum(scores) / len(scores)
+    print(average_score)
+    return average_score
+
 
 def run(args):
-    results_path = f'Supervised_Results_no_Genus_{args["Env"]}.json'
-    results = load_results(results_path, args['continue'])
     fasta_file = os.path.join(args["results_folder"], args["Env"], f'Extremophiles_{args["Env"]}.fas')
-    perform_classification(fasta_file, results, args["results_folder"], args["Env"], args["max_k"], args["exp"])
+    supervised_classification(fasta_file, args["max_k"], args["results_folder"], args["Env"], args["exp"])
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--results_folder', required=True, type=str)
-    parser.add_argument('--Env', required=True, type=str)
+    parser.add_argument('--results_folder', action='store', type=str)
+    parser.add_argument('--Env', action='store', type=str)  # [Temperature, pH]
+    parser.add_argument('--n_clusters', action='store', type=int, default=None)  # [int]
     parser.add_argument('--continue', action='store_true')
-    parser.add_argument('--exp', required=True, type=str)
-    parser.add_argument('--max_k', required=True, type=int)
-    args = parser.parse_args()
-    torch.set_num_threads(1)
-    run(vars(args))
+    parser.add_argument('--exp', action='store', type=str)
+    parser.add_argument('--max_k', action='store', type=int)
+
+    args = vars(parser.parse_args())
+
+    run(args)
+
 
 if __name__ == '__main__':
     main()
+
+
+
