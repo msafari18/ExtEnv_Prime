@@ -39,13 +39,13 @@ def supervised_classification(fasta_file, max_k, result_folder, env, exp):
         results_json[k] = {}
         _, kmers = kmersFasta(fasta_file, k=k, transform=None, reduce=True)
         kmers_normalized = np.transpose((np.transpose(kmers) / np.linalg.norm(kmers, axis=1)))
-        results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env, exp)
+        results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env)
         print(f"Finished processing k = {k}")
 
     save_results(results_json, env, result_folder, exp)
 
 
-def perform_classification(kmers, k, results_json, result_folder, env, exp):
+def perform_classification(kmers, k, results_json, result_folder, env):
     classifiers = {
         "SVM": (SVC, {'kernel': 'rbf', 'class_weight': 'balanced', 'C': 10}),
         "Random Forest": (RandomForestClassifier, {}),

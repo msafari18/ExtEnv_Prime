@@ -2,7 +2,7 @@ import json
 import os
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import StratifiedGroupKFold
+from sklearn.model_selection import StratifiedKFold, StratifiedGroupKFold
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
@@ -10,6 +10,7 @@ from src.utils import SummaryFasta, kmersFasta
 import argparse
 
 import warnings
+
 warnings.filterwarnings("ignore")
 
 
@@ -46,10 +47,9 @@ def preprocess_data(fasta_file, summary_file):
     })
     return data
 
-
 def supervised_classification(fasta_file, max_k, result_folder, env, exp):
-    results_json = {}
     data = preprocess_data(fasta_file, "/path/to/Extremophiles_GTDB.tsv")
+    results_json = {}
     for k in range(1, max_k + 1):
         results_json[k] = {}
         _, kmers = kmersFasta(fasta_file, k=k, transform=None, reduce=True)
@@ -58,6 +58,7 @@ def supervised_classification(fasta_file, max_k, result_folder, env, exp):
         print(f"Finished processing k = {k}")
 
     save_results(results_json, env, result_folder, exp)
+
 
 def perform_classification(kmers, k, results_json, result_folder, env, data):
     classifiers = {
@@ -79,34 +80,31 @@ def perform_classification(kmers, k, results_json, result_folder, env, data):
 
     return results_json
 
+
 def cross_validate_model(kmers, label_data, algorithm, params, data):
-    unique_labels = list(label_data['cluster_id'].unique())
-    Dataset = pd.concat([label_data, pd.DataFrame(kmers)], axis=1)
-    Dataset.dropna(inplace=True)
+    label_data.reset_index(drop=True, inplace=True)  # Reset index if not already aligned
+    kmers_df = pd.DataFrame(kmers)
+    Dataset = pd.concat([label_data['cluster_id'], kmers_df], axis=1).dropna()
+
+    # Prepare data for cross-validation
     skf = StratifiedGroupKFold(n_splits=10)
+    unique_labels = list(label_data['cluster_id'].unique())
+    label_index_map = {label: idx for idx, label in enumerate(unique_labels)}
 
-    idx = Dataset.drop_duplicates(subset=["Assembly"]).Assembly.to_numpy()
-    y = Dataset.cluster_id.to_numpy()
-
-    n_samples, n_features = kmers.shape
-    print(n_samples, n_features)
     scores = []
 
-    for train, test in skf.split(idx , y, groups=data["genus"].values):
+    for train_idx, test_idx in skf.split(Dataset, Dataset['cluster_id'], groups=data["genus"].values):
         model = algorithm(**params)
-        train_Dataset = Dataset.iloc[train]
-        test_Dataset = Dataset.iloc[test]
-        x_train = train_Dataset.loc[:, list(range(n_features))].to_numpy()
-        y_train = list(
-            map(lambda x: unique_labels.index(x), train_Dataset.loc[:, ['cluster_id']].to_numpy().reshape(-1)))
+        x_train, y_train = Dataset.iloc[train_idx].drop('cluster_id', axis=1), Dataset.iloc[train_idx]['cluster_id']
+        x_test, y_test = Dataset.iloc[test_idx].drop('cluster_id', axis=1), Dataset.iloc[test_idx]['cluster_id']
 
-        x_test = test_Dataset.loc[:, list(range(n_features))].to_numpy()
-        y_test = list(
-            map(lambda x: unique_labels.index(x), test_Dataset.loc[:, ['cluster_id']].to_numpy().reshape(-1)))
+        # Convert labels to indices
+        y_train = [label_index_map[label] for label in y_train]
+        y_test = [label_index_map[label] for label in y_test]
 
         model.fit(x_train, y_train)
-        score = model.score(x_test, y_test)
-        scores.append(score)
+        scores.append(model.score(x_test, y_test))
+
         del model
 
     average_score = sum(scores) / len(scores)
@@ -135,6 +133,8 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
 
 
 
