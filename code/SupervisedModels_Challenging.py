@@ -32,6 +32,7 @@ def load_json_results(path, continue_flag):
         return {int(k): v for k, v in data.items()}
     return {}
 
+
 def preprocess_data(fasta_file, summary_file):
     names, _, _, _ = SummaryFasta(fasta_file)
     summary_dataset = pd.read_csv(summary_file, sep='\t',
@@ -47,8 +48,11 @@ def preprocess_data(fasta_file, summary_file):
     })
     return data
 
+
 def supervised_classification(fasta_file, max_k, result_folder, env, exp):
-    data = preprocess_data(fasta_file, "/path/to/Extremophiles_GTDB.tsv")
+    ###### change this
+    path = "/".join(result_folder.split("/")[:-1])
+    data = preprocess_data(fasta_file, f"{path}/Extremophiles_GTDB.tsv")
     results_json = {}
     for k in range(1, max_k + 1):
         results_json[k] = {}
@@ -93,7 +97,7 @@ def cross_validate_model(kmers, label_data, algorithm, params, data):
 
     scores = []
 
-    for train_idx, test_idx in skf.split(Dataset, Dataset['cluster_id'], groups=data["genus"].values):
+    for train_idx, test_idx in skf.split(Dataset, Dataset['cluster_id'], groups=data["Genus"].values):
         model = algorithm(**params)
         x_train, y_train = Dataset.iloc[train_idx].drop('cluster_id', axis=1), Dataset.iloc[train_idx]['cluster_id']
         x_test, y_test = Dataset.iloc[test_idx].drop('cluster_id', axis=1), Dataset.iloc[test_idx]['cluster_id']
