@@ -71,6 +71,7 @@ def run_pipeline(args):
 
                 # run the supervised classification under the first scenario (not challenging)
                 result_folder = f"{PATH}/{args['exp_type']}/{exp}/fragments_{fragment_length}"
+                fasta_file = os.path.join(result_folder, env, f'Extremophiles_{env}.fas')
                 print(f"\n Classification is started (scenario 1).")
                 run_supervised_classification(fasta_file, args.max_k, result_folder, env, exp, classifiers)
                 print(f"\n Classification ended (scenario 1).")
