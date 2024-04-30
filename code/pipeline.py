@@ -14,8 +14,8 @@ ENVS = ["Temperature", "pH"]
 NUM_CLUSTERS = {"Temperature": 4,
                 "pH": 2}
 FRAGMENT_LENGTHS = [10000, 50000, 100000, 250000, 500000, 1000000]
-# PATH = "/home/m4safari/projects/def-lila-ab/m4safari/ext1prime/data"
-PATH = "/content/drive/MyDrive/anew"
+PATH = "/home/m4safari/projects/def-lila-ab/m4safari/ext1prime/data"
+# PATH = "/content/drive/MyDrive/anew"
 NUM_EXP = 10
 
 
