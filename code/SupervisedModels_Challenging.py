@@ -12,7 +12,7 @@ import argparse
 import warnings
 
 warnings.filterwarnings("ignore")
-
+PATH = "/content/drive/MyDrive/anew"
 
 def save_results(result, dataset, result_folder, run):
     file_path = os.path.join(result_folder, f'Challenging_Supervised_Results_{dataset}.json')
@@ -51,8 +51,7 @@ def preprocess_data(fasta_file, summary_file):
 
 def run_supervised_classification_challenging(fasta_file, max_k, result_folder, env, exp, classifiers):
     ###### change this
-    path = "/".join(result_folder.split("/")[:-1])
-    data = preprocess_data(fasta_file, f"{path}/Extremophiles_GTDB.tsv")
+    data = preprocess_data(fasta_file, f"{PATH}/Extremophiles_GTDB.tsv")
     results_json = {}
     for k in range(1, max_k + 1):
         results_json[k] = {}
