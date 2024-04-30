@@ -33,26 +33,19 @@ def load_json_results(path, continue_flag):
     return {}
 
 
-def supervised_classification(fasta_file, max_k, result_folder, env, exp):
+def run_supervised_classification(fasta_file, max_k, result_folder, env, exp, classifiers):
     results_json = {}
     for k in range(1, max_k + 1):
         results_json[k] = {}
         _, kmers = kmersFasta(fasta_file, k=k, transform=None, reduce=True)
         kmers_normalized = np.transpose((np.transpose(kmers) / np.linalg.norm(kmers, axis=1)))
-        results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env)
+        results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env, classifiers)
         print(f"Finished processing k = {k}")
 
     save_results(results_json, env, result_folder, exp)
 
 
-def perform_classification(kmers, k, results_json, result_folder, env):
-    classifiers = {
-        "SVM": (SVC, {'kernel': 'rbf', 'class_weight': 'balanced', 'C': 10}),
-        "Random Forest": (RandomForestClassifier, {}),
-        "ANN": (MLPClassifier, {'hidden_layer_sizes': (256, 64), 'solver': 'adam',
-                                'activation': 'relu', 'alpha': 1, 'learning_rate_init': 0.001,
-                                'max_iter': 300, 'n_iter_no_change': 10})
-    }
+def perform_classification(kmers, k, results_json, result_folder, env, classifiers):
 
     env_file = os.path.join(result_folder, env, f'Extremophiles_{env}_GT_Env.tsv')
     tax_file = os.path.join(result_folder, env, f'Extremophiles_{env}_GT_Tax.tsv')
@@ -97,26 +90,8 @@ def cross_validate_model(kmers, label_data, algorithm, params):
     return average_score
 
 
-def run(args):
-    fasta_file = os.path.join(args["results_folder"], args["Env"], f'Extremophiles_{args["Env"]}.fas')
-    supervised_classification(fasta_file, args["max_k"], args["results_folder"], args["Env"], args["exp"])
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--results_folder', action='store', type=str)
-    parser.add_argument('--Env', action='store', type=str)  # [Temperature, pH]
-    parser.add_argument('--n_clusters', action='store', type=int, default=None)  # [int]
-    parser.add_argument('--continue', action='store_true')
-    parser.add_argument('--exp', action='store', type=str)
-    parser.add_argument('--max_k', action='store', type=int)
 
-    args = vars(parser.parse_args())
-
-    run(args)
-
-
-if __name__ == '__main__':
-    main()
 
 

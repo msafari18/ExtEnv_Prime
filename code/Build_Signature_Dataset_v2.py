@@ -6,6 +6,7 @@ import random
 
 plt.rcParams["font.family"] = "Times New Roman"
 
+DATASET_FILE = "Extremophiles_GTDB.tsv"
 
 def summary_fasta(filename, min_len):
     names, seqs, plasmids = [], [], []
@@ -90,25 +91,23 @@ def produce_fragment(names, seqs, min_len, is_whole_genome=False, max_num_part=1
     return fragment
 
 
-def run(args):
-    path = args['path']
-    new_folder_path = os.path.join(path, args['new_folder_name'])
+def run_fragment_builder(path, fragment_file, fragment_length, whole_genome, env):
+
+    new_folder_path = os.path.join(path, fragment_file)
     os.makedirs(new_folder_path, exist_ok=True)
 
-    dataset_path = os.path.join(path, args['dataset_file'])
+    dataset_path = os.path.join(path, DATASET_FILE)
     dataset = pd.read_csv(dataset_path, delimiter='\t')
 
     # Filter dataset for missing assemblies
     dataset = filter_assemblies(dataset, path)
+    env_folder = os.path.join(new_folder_path, env)
+    os.makedirs(env_folder, exist_ok=True)
 
-    for _dataset in ['Temperature', 'pH']:
-        env_folder = os.path.join(new_folder_path, _dataset)
-        os.makedirs(env_folder, exist_ok=True)
+    # Filter dataset for non-null environmental values
+    dataset_env = dataset[dataset[env].notnull()]
 
-        # Filter dataset for non-null environmental values
-        dataset_env = dataset[dataset[_dataset].notnull()]
-
-        process_environmental_data(dataset_env, path, env_folder, _dataset, args)
+    process_environmental_data(dataset_env, path, env_folder, env, fragment_length, whole_genome)
 
 
 def filter_assemblies(dataset, path):
@@ -121,13 +120,13 @@ def filter_assemblies(dataset, path):
     return dataset[~dataset['Assembly'].isin(removed)]
 
 
-def process_environmental_data(dataset_env, path, env_folder, env_type, args):
+def process_environmental_data(dataset_env, path, env_folder, env_type, fragment_length, whole_genome):
     aux_dataset = []
 
     for index, row in dataset_env.iterrows():
 
         assembly_path = f'{path}/Assemblies/{row["Assembly"]}'
-        seq_names, seqs = process_assembly(assembly_path, row, env_folder, env_type, aux_dataset, args)
+        seq_names, seqs = process_assembly(assembly_path, row, env_folder)
         if seq_names == None or seqs == None:
             print(f'Assembly {row["Assembly"]} not found')
         else:
@@ -136,7 +135,7 @@ def process_environmental_data(dataset_env, path, env_folder, env_type, args):
             assembly = row['Assembly']
             domain = row['Domain']
 
-            fragment = produce_fragment(seq_names, seqs, args['fragment_len'], is_whole_genome=args['whole_genome'])
+            fragment = produce_fragment(seq_names, seqs, fragment_length, is_whole_genome=whole_genome)
 
             acc = assembly
             aux_dataset.append([acc, assembly, domain, row[env_type], domain + '_' + env_type,
@@ -158,7 +157,7 @@ def process_environmental_data(dataset_env, path, env_folder, env_type, args):
     export_summary_data(summary_path, env_folder, env_type)
 
 
-def process_assembly(assembly_path, row, env_folder, env_type, aux_dataset, args):
+def process_assembly(assembly_path, row, env_folder):
     fasta_file = os.listdir(assembly_path)[0] if os.listdir(assembly_path) else None
     _min = 0
 
@@ -195,22 +194,6 @@ def export_summary_data(summary_path, env_folder, env_type):
     df.rename(columns={env_type: 'cluster_id'}, inplace=True)
     df.to_csv(os.path.join(env_folder, f'Extremophiles_{env_type}_GT_Env.tsv'), sep='\t')
 
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--path', action='store', type=str)
-    parser.add_argument('--dataset_file', action='store', type=str)
-    parser.add_argument('--fragment_len', action='store', type=int)
-    parser.add_argument('--new_folder_name', action='store', type=str)
-    parser.add_argument('--whole_genome', action='store_true')
-
-    args = vars(parser.parse_args())
-
-    run(args)
-
-
-if __name__ == '__main__':
-    main()
 
 
 
