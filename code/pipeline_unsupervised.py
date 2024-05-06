@@ -23,7 +23,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--exp_type', action='store', type=str)
     parser.add_argument('--k-mer', action='store', type=int)
-    parser.add_argument('--fragement_length', action='store_true')
+    parser.add_argument('--fragement_length', action='store', type=int)
     args = vars(parser.parse_args())
 
     run_pipeline(args)
