@@ -1,14 +1,10 @@
 import numpy as np
 import sys
-import os
 import pandas as pd
 
 import matplotlib.pyplot as plt
 import umap
-import seaborn as sns
-
 import hdbscan
-import argparse
 from sklearn.metrics import homogeneity_completeness_v_measure as cluster_quality
 
 sys.path.append('src')
@@ -125,6 +121,8 @@ labels, latent = model.fit_predict(sequence_file)
 insert_assignment(summary_dataset, "iDeLUCS", GT_file, labels)
 
 
+################################ first part end
+
 level = "Genus"
 # summary_dataset = pd.read_csv(f"/home/loan/Nextcloud/Extremophiles/Complete_Genome/clustered_{dataset}.tsv", sep='\t')
 # create a dictionary to store the counts of GT for each Env value
@@ -147,6 +145,9 @@ for dim_name, dim_algo in dim_algorithms:
 
 algo_names.append('iDeLUCS')
 #algo_names = ["CL+HDBSCAN", "VAE+HDBSCAN", "UMAP+HDBSCAN"]
+
+
+################################ second part end
 
 for name in algo_names:
     assignment_algo = name 
@@ -204,6 +205,7 @@ plt.savefig(f"Unsupervised_{dataset}.svg", format="svg",transparent=True)
 plt.show()
 df
 
+################################ third part end
 
 #print(GOOD_CLUSTERS)
 if dataset=="Temperature":
@@ -236,3 +238,6 @@ for pair in pairs:
         L.append(pair[0].replace(' ','_'))
         L.append(pair[1].replace(' ','_'))
 
+
+
+################################ forth part end
