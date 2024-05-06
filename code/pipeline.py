@@ -22,19 +22,19 @@ def experiment_task(args, env, exp, fragment_length):
     fragment_file = f"{args['exp_type']}/{exp}/fragments_{fragment_length}"
     print(f"\n Building fragment with length {fragment_length} is started.")
     run_fragment_builder(PATH, fragment_file, fragment_length, args['whole_genome'], env)
-    print(f"\n Fragment with length {fragment_length} has been created.")
+    print(f"\n Fragment with length {fragment_length} has been created.", flush=True)
 
     # Run the supervised classification under the first scenario (not challenging)
     result_folder = f"{PATH}/{args['exp_type']}/{exp}/fragments_{fragment_length}"
     fasta_file = os.path.join(result_folder, env, f'Extremophiles_{env}.fas')
     print(f"\n Classification is started (scenario 1).")
     run_supervised_classification(fasta_file, args['max_k'], result_folder, env, exp, args['classifiers'])
-    print(f"\n Classification ended (scenario 1).")
+    print(f"\n Classification ended (scenario 1).", flush=True)
 
     # Run the supervised classification under the 2nd scenario (challenging)
     print(f"\n Classification is started (scenario 2).")
     run_supervised_classification_challenging(fasta_file, args['max_k'], result_folder, env, exp, args['classifiers'])
-    print(f"\n Classification ended (scenario 2).")
+    print(f"\n Classification ended (scenario 2).", flush=True)
 
 def run_pipeline(args):
     if args["exp_type"] == "exp1":
