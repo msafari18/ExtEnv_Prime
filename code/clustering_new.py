@@ -26,14 +26,22 @@ TAX_LEVEL = 'Genus'
 
 
 # Dimensionality reduction functions
-def VAE(sequence_file=None, latent_file=None):
-    with open(sequence_file, 'rb') as contigfile:
-        tnfs, names, contiglengths = vamb.parsecontigs.read_contigs(contigfile)
-    rpkms = np.ones((tnfs.shape[0], 1), dtype=np.float32)
+def VAE(sequence_file, latent_file=None):
+    with vamb.vambtools.Reader(sequence_file) as filehandle:
+        composition = vamb.parsecontigs.Composition.from_file(filehandle)
+
+    rpkms = np.ones((composition.matrix.shape[0], 1), dtype=np.float32)
     vae = vamb.encode.VAE(nsamples=1, nlatent=32)
-    dataloader, mask = vamb.encode.make_dataloader(rpkms, tnfs, batchsize=128)
+    dataloader = vamb.encode.make_dataloader(
+        rpkms,
+        composition.matrix,
+        composition.metadata.lengths,
+    )
+
     vae.trainmodel(dataloader)
     latent = vae.encode(dataloader)
+    names = composition.metadata.identifiers
+
     return names, latent
 
 def CL(sequence_file=None, latent_file=None):
