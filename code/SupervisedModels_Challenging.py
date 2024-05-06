@@ -54,8 +54,8 @@ def run_supervised_classification_challenging(fasta_file, max_k, result_folder, 
         kmers_normalized = np.transpose((np.transpose(kmers) / np.linalg.norm(kmers, axis=1)))
         results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env, data, classifiers)
         print(f"Finished processing k = {k}", flush=True)
-
-    save_results(results_json, env, result_folder, exp)
+        del kmers_normalized
+        save_results(results_json, env, result_folder, exp)
 
 
 def perform_classification(kmers, k, results_json, result_folder, env, data, classifiers):
