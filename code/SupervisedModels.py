@@ -3,11 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
-from src.utils import SummaryFasta, kmersFasta
-import argparse
+from src.utils import kmersFasta
 
 import warnings
 

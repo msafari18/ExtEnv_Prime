@@ -2,13 +2,8 @@ import json
 import os
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import StratifiedKFold, StratifiedGroupKFold
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import StratifiedGroupKFold
 from src.utils import SummaryFasta, kmersFasta
-import argparse
-
 import warnings
 
 warnings.filterwarnings("ignore")

@@ -6,6 +6,7 @@ import CGR_utils
 from Bio import SeqIO
 import os
 import pandas as pd
+import re
 
 ENVS = ["Temperature", "pH"]
 NUM_CLUSTERS = {"Temperature": 4, "pH": 2}
@@ -18,9 +19,9 @@ PATH = "/content/drive/MyDrive/anew"
 def draw_fcgrs(sequence, id, len, domain, env_label, env):
     # Initialize FCGR object for (256x256) array representation
     fcgr = CGR_utils.FCGR(k=8, bits=8)
-    plt.figure(figsize=(12, 8))
+    # plt.figure(figsize=(12, 8))
     chaos = fcgr(sequence)
-    plt.imshow(fcgr.plot(chaos/np.max(chaos)), cmap="gray")
+    plt.imshow(fcgr.plot(chaos), cmap="gray")
     # Title each subplot with letters
     plt.title(f"{id}", y=-0.1)
     plt.xticks([])  # Remove x ticks
@@ -44,7 +45,7 @@ def draw_fcgrs(sequence, id, len, domain, env_label, env):
     if not os.path.exists(f"{PATH}/fcgrs/fragment_{len}/all"):
         os.makedirs(f"{PATH}/fcgrs/fragment_{len}/all")
     plt.savefig(f"{PATH}/fcgrs/fragment_{len}/all/{id}.png", dpi=300)
-    # plt.show()
+    plt.close()
 
 def read_fasta(file_path):
 
@@ -57,6 +58,11 @@ def read_fasta(file_path):
 
     return id_2_sequences
 
+
+
+def clean_sequence(sequence):
+    # Replace any character not A, C, G, T, or N with N
+    return re.sub(r'[^ACGTN]', 'N', sequence)
 
 def run():
     for env in ENVS:
@@ -73,7 +79,7 @@ def run():
                 domain = str(list(summary_data[summary_data['Assembly'] == id]['Domain'])[0])
                 env_label = str(list(summary_data[summary_data['Assembly'] == id][env])[0])
                 print(f"Domain: {domain}, Env: {env_label}")
-                sequence = id_2_sequences[id]
+                sequence = clean_sequence(id_2_sequences[id])
                 draw_fcgrs(sequence, id, fragment_length, domain, env_label, env)
 
 
