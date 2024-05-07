@@ -33,7 +33,7 @@ def experiment_task(args, env, exp, fragment_length):
 
     # Run the supervised classification under the 2nd scenario (challenging)
     print(f"\n Classification is started (scenario 2).")
-    run_supervised_classification_challenging(fasta_file, args['max_k'], result_folder, env, exp, args['classifiers'])
+    run_supervised_classification_challenging(PATH, fasta_file, args['max_k'], result_folder, env, exp, args['classifiers'])
     print(f"\n Classification ended (scenario 2).", flush=True)
 
 def run_pipeline(args):

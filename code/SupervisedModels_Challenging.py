@@ -7,7 +7,6 @@ from src.utils import SummaryFasta, kmersFasta
 import warnings
 
 warnings.filterwarnings("ignore")
-PATH = "/content/drive/MyDrive/anew"
 
 def save_results(result, dataset, result_folder, run):
     file_path = os.path.join(result_folder, f'Challenging_Supervised_Results_{dataset}.json')
@@ -15,6 +14,8 @@ def save_results(result, dataset, result_folder, run):
     if os.path.isfile(file_path):
         with open(file_path, 'r') as file:
             existing_data = json.load(file)
+    if run in existing_data.keys():
+        existing_data = {}
     existing_data[run] = result
     with open(file_path, 'w') as file:
         json.dump(existing_data, file, indent=2)
@@ -44,9 +45,9 @@ def preprocess_data(fasta_file, summary_file):
     return data
 
 
-def run_supervised_classification_challenging(fasta_file, max_k, result_folder, env, exp, classifiers):
+def run_supervised_classification_challenging(path, fasta_file, max_k, result_folder, env, exp, classifiers):
     ###### change this
-    data = preprocess_data(fasta_file, f"{PATH}/Extremophiles_GTDB.tsv")
+    data = preprocess_data(fasta_file, f"{path}/Extremophiles_GTDB.tsv")
     results_json = {}
     for k in range(1, max_k + 1):
         results_json[k] = {}

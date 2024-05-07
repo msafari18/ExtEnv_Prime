@@ -10,9 +10,9 @@ from sklearn.metrics import completeness_score, homogeneity_score
 
 sys.path.append('src')
 import vamb
-from models import CLE, VAE_encoder
-from idelucs.cluster import iDeLUCS_cluster
-from utils import kmersFasta
+from src.models import CLE, VAE_encoder
+from src.idelucs.cluster import iDeLUCS_cluster
+from src.utils import kmersFasta
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -61,13 +61,20 @@ def iDeLUCS(sequence_file=None, params=None):
 
 
 # Clustering functions
-def IM(latent, names):
-    cluster_iterator = vamb.cluster.cluster(latent.astype(np.float32), labels=names)
-    cluster_dict = {}
-    for cluster_name, seq_names in cluster_iterator:
-        for seq_id in seq_names:
-            cluster_dict.setdefault(seq_id, []).append(cluster_name)
-    return np.array([cluster_dict[_id][0] for _id in names if _id in cluster_dict])
+# def IM(latent, names):
+#     clusters: Iterable[tuple[str, Iterable[str]]], separator: str
+#     clusterer = vamb.cluster.ClusterGenerator(latent, composition.metadata.lengths)
+#     print(clusterer)
+#     binsplit_clusters = vamb.vambtools.binsplit(
+#         (
+#             (names[cluster.medoid], {names[m] for m in cluster.members})
+#             for cluster in clusterer
+#         ),
+#         "C"
+#     )
+#     print(binsplit_clusters)
+
+#     return np.array([binsplit_clusters[_id][0] for _id in names if _id in binsplit_clusters])
 
 
 def DBSCAN(latent, names):
@@ -97,6 +104,7 @@ def insert_assignment(summary_dataset, assignment_algo, names, labels):
         label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
         y = np.array([label_mapping[genus] for genus in GT])
         y_pred = summary_dataset[assignment_algo].dropna().map(label_mapping).to_numpy()
+        print(y_pred, y)
         results = cluster_quality(y, y_pred)
         print(f'Clustering Quality for {assignment_algo}:', results)
     else:
@@ -117,6 +125,7 @@ def run_models(env, path, fragment_length, k):
     sequence_file = os.path.join(result_folder, env, f'Extremophiles_{env}.fas')
 
     models = {
+        "CL": CL,
         "VAE": VAE,
         "UMAP": UMAP,
         "iDeLUCS": lambda sequence_file: iDeLUCS_cluster(sequence_file, n_clusters=200, n_epochs=50,
@@ -124,7 +133,7 @@ def run_models(env, path, fragment_length, k):
                                                          n_voters=5, optimizer='AdamW', scheduler='Linear')
     }
 
-    clust_algorithms = {"IM": IM, "HDBSCAN": DBSCAN}
+    clust_algorithms = {"HDBSCAN": DBSCAN}
 
     for model_name, model_func in models.items():
         print(f"......... Processing {model_name} ...............")
