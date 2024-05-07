@@ -6,19 +6,24 @@ from sklearn.model_selection import StratifiedKFold
 from src.utils import kmersFasta
 
 import warnings
+from multiprocessing import Lock
 
 warnings.filterwarnings("ignore")
-
+lock = Lock()
 
 def save_results(result, dataset, result_folder, run):
     file_path = os.path.join(result_folder, f'Supervised_Results_{dataset}.json')
-    existing_data = {}
-    if os.path.isfile(file_path):
-        with open(file_path, 'r') as file:
-            existing_data = json.load(file)
-    existing_data[run] = result
-    with open(file_path, 'w') as file:
-        json.dump(existing_data, file, indent=2)
+    lock.acquire()  # Acquire lock before accessing the file
+    try:
+        existing_data = {}
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as file:
+                existing_data = json.load(file)
+        existing_data[run] = result
+        with open(file_path, 'w') as file:
+            json.dump(existing_data, file, indent=2)
+    finally:
+        lock.release()  # Ensure the lock is always released
 
 
 def load_json_results(path, continue_flag):

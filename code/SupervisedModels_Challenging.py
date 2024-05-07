@@ -5,20 +5,26 @@ import numpy as np
 from sklearn.model_selection import StratifiedGroupKFold
 from src.utils import SummaryFasta, kmersFasta
 import warnings
+from multiprocessing import Lock
 
 warnings.filterwarnings("ignore")
+lock = Lock()
 
 def save_results(result, dataset, result_folder, run):
     file_path = os.path.join(result_folder, f'Challenging_Supervised_Results_{dataset}.json')
-    existing_data = {}
-    if os.path.isfile(file_path):
-        with open(file_path, 'r') as file:
-            existing_data = json.load(file)
-    if run in existing_data.keys():
+    lock.acquire()  # Acquire lock before accessing the file
+    try:
         existing_data = {}
-    existing_data[run] = result
-    with open(file_path, 'w') as file:
-        json.dump(existing_data, file, indent=2)
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as file:
+                existing_data = json.load(file)
+        if run in existing_data.keys():
+            existing_data = {}
+        existing_data[run] = result
+        with open(file_path, 'w') as file:
+            json.dump(existing_data, file, indent=2)
+    finally:
+        lock.release()  # Ensure the lock is always released
 
 
 def load_json_results(path, continue_flag):
