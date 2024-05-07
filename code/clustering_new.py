@@ -10,9 +10,11 @@ from sklearn.metrics import completeness_score, homogeneity_score
 
 sys.path.append('src')
 import vamb
-from src.models import CLE, VAE_encoder
-from src.idelucs.cluster import iDeLUCS_cluster
-from src.utils import kmersFasta
+from models import CLE, VAE_encoder
+from idelucs.cluster import iDeLUCS_cluster
+from utils import kmersFasta
+from sklearn.cluster import MeanShift
+from sklearn.cluster import AffinityPropagation
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -26,22 +28,14 @@ TAX_LEVEL = 'Genus'
 
 
 # Dimensionality reduction functions
-def VAE(sequence_file, latent_file=None):
-    with vamb.vambtools.Reader(sequence_file) as filehandle:
-        composition = vamb.parsecontigs.Composition.from_file(filehandle)
-
-    rpkms = np.ones((composition.matrix.shape[0], 1), dtype=np.float32)
+def VAE(sequence_file=None, latent_file=None):
+    with open(sequence_file, 'rb') as contigfile:
+        tnfs, names, contiglengths = vamb.parsecontigs.read_contigs(contigfile)
+    rpkms = np.ones((tnfs.shape[0], 1), dtype=np.float32)
     vae = vamb.encode.VAE(nsamples=1, nlatent=32)
-    dataloader = vamb.encode.make_dataloader(
-        rpkms,
-        composition.matrix,
-        composition.metadata.lengths,
-    )
-
+    dataloader, mask = vamb.encode.make_dataloader(rpkms, tnfs, batchsize=128)
     vae.trainmodel(dataloader)
     latent = vae.encode(dataloader)
-    names = composition.metadata.identifiers
-
     return names, latent
 
 def CL(sequence_file=None, latent_file=None):
@@ -55,31 +49,34 @@ def UMAP(sequence_file=None, latent_file=None):
     return names, umap.UMAP(random_state=42, n_neighbors=30, min_dist=0.0, n_components=64).fit_transform(kmers)
 
 
-def iDeLUCS(sequence_file=None, params=None):
-    model = iDeLUCS_cluster(**params)
-    return model.fit_predict(sequence_file)
-
-
 # Clustering functions
 # def IM(latent, names):
-#     clusters: Iterable[tuple[str, Iterable[str]]], separator: str
-#     clusterer = vamb.cluster.ClusterGenerator(latent, composition.metadata.lengths)
-#     print(clusterer)
-#     binsplit_clusters = vamb.vambtools.binsplit(
-#         (
-#             (names[cluster.medoid], {names[m] for m in cluster.members})
-#             for cluster in clusterer
-#         ),
-#         "C"
-#     )
-#     print(binsplit_clusters)
+#     cluster_iterator = vamb.cluster.cluster(latent.astype(np.float32), labels=names)
+#     cluster_dict = {}
+#     for cluster_name, seq_names in cluster_iterator:
+#         for seq_id in seq_names:
+#             cluster_dict.setdefault(seq_id, []).append(cluster_name)
+#     return np.array([cluster_dict[_id][0] for _id in names if _id in cluster_dict])
 
-#     return np.array([binsplit_clusters[_id][0] for _id in names if _id in binsplit_clusters])
+def meanshift(latent):
+    mean_shift = MeanShift(bandwidth=1).fit(latent)
+    labels = mean_shift.labels_
+
+    return labels
+
+def affinity_propagation(latent):
+    clustering = AffinityPropagation(random_state=5).fit(latent)
+    labels = clustering.labels_
+    return labels
 
 
 def DBSCAN(latent, names):
     clusterer = hdbscan.HDBSCAN(min_cluster_size=3, gen_min_span_tree=True).fit(latent)
     return clusterer.labels_
+
+def iDeLUCS(sequence_file=None, params=None):
+    model = iDeLUCS_cluster(**params)
+    return model.fit_predict(sequence_file)
 
 
 def insert_assignment(summary_dataset, assignment_algo, names, labels):
@@ -104,7 +101,6 @@ def insert_assignment(summary_dataset, assignment_algo, names, labels):
         label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
         y = np.array([label_mapping[genus] for genus in GT])
         y_pred = summary_dataset[assignment_algo].dropna().map(label_mapping).to_numpy()
-        print(y_pred, y)
         results = cluster_quality(y, y_pred)
         print(f'Clustering Quality for {assignment_algo}:', results)
     else:
@@ -125,7 +121,6 @@ def run_models(env, path, fragment_length, k):
     sequence_file = os.path.join(result_folder, env, f'Extremophiles_{env}.fas')
 
     models = {
-        "CL": CL,
         "VAE": VAE,
         "UMAP": UMAP,
         "iDeLUCS": lambda sequence_file: iDeLUCS_cluster(sequence_file, n_clusters=200, n_epochs=50,
@@ -133,7 +128,7 @@ def run_models(env, path, fragment_length, k):
                                                          n_voters=5, optimizer='AdamW', scheduler='Linear')
     }
 
-    clust_algorithms = {"HDBSCAN": DBSCAN}
+    clust_algorithms = {"IM": IM, "HDBSCAN": DBSCAN}
 
     for model_name, model_func in models.items():
         print(f"......... Processing {model_name} ...............")
@@ -183,7 +178,7 @@ def analyze_clustering_results(summary_dataset, dataset_column, algo_names):
     Process and analyze clustering results to calculate completeness and homogeneity metrics and visualize outcomes.
     """
 
-    GOOD_CLUSTERS = {}
+
     overall_results = pd.DataFrame()  # To store summary results for visualization
 
     for name in algo_names:
