@@ -3,7 +3,7 @@ sys.path.append('src/')
 import pyximport 
 pyximport.install()
 
-from kmers import kmer_counts
+from src.kmers import kmer_counts
 
 import random, itertools
 import numpy as np
