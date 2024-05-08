@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 import os
-from multiprocessing import Lock
+
 
 from Build_Signature_Dataset_v2 import run_fragment_builder
 from SupervisedModels import run_supervised_classification
@@ -41,7 +41,7 @@ def run_pipeline(args):
     if args["exp_type"] == "exp1":
         classifiers = {"SVM": (SVC, {'kernel': 'rbf', 'class_weight': 'balanced', 'C': 10})}
         args['classifiers'] = classifiers
-        num_exp = 10
+        num_exp = 5
 
     elif args["exp_type"] == "exp2":
         classifiers = {

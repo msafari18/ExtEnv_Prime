@@ -1,12 +1,10 @@
 import re
-
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import random
 
 plt.rcParams["font.family"] = "Times New Roman"
-
 DATASET_FILE = "Extremophiles_GTDB.tsv"
 
 def summary_fasta(filename, min_len):

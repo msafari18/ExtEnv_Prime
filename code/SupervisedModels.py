@@ -43,7 +43,7 @@ def run_supervised_classification(fasta_file, max_k, result_folder, env, exp, cl
         results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env, classifiers)
         print(f"Finished processing k = {k}", flush=True)
         del kmers_normalized
-        save_results(results_json, env, result_folder, exp)
+    save_results(results_json, env, result_folder, exp)
 
 
 def perform_classification(kmers, k, results_json, result_folder, env, classifiers):
