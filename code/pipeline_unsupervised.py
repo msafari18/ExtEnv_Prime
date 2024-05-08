@@ -9,7 +9,7 @@ PATH = "/content/drive/MyDrive/anew"
 
 def run_pipeline(args):
     fragement_length = args["fragement_length"]
-    k = args["k-mer"]
+    k = args["k_mer"]
     if args["exp_type"] == "parametric":
         pass
 
@@ -24,7 +24,7 @@ def run_pipeline(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--exp_type', action='store', type=str)
-    parser.add_argument('--k-mer', action='store', type=int)
+    parser.add_argument('--k_mer', action='store', type=int)
     parser.add_argument('--fragement_length', action='store', type=int)
     args = vars(parser.parse_args())
 
