@@ -19,8 +19,6 @@ def run_pipeline(args):
             for algo in algo_names:
                 analyze_clustering(algo, summary_dataset, env)
 
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--exp_type', action='store', type=str)
