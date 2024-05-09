@@ -1,9 +1,9 @@
+import os 
 import sys
-sys.path.append('src/')
 import pyximport 
 pyximport.install()
 
-from src.kmers import kmer_counts
+from .kmers import kmer_counts, cgr
 
 import random, itertools
 import numpy as np
@@ -272,6 +272,46 @@ def kmersFasta(fname, k=6, transform=None, reduce=False):
         
     return names, np.array(kmers)
 
+def cgrFasta(fname, k=6, transform=None):
+    lines = list()
+    seq_id = ""
+    names, kmers = [], []
+
+    for line in open(fname, "rb"):
+        if line.startswith(b'#'):
+            pass
+
+        elif line.startswith(b'>'):
+            if seq_id != "":
+                seq = bytearray().join(lines)
+                names.append(seq_id)  
+                            
+                if transform:
+                    transform(seq)
+                    
+                counts = np.ones(4**k, dtype=np.int32)
+                #kmer_counts(seq, k, counts)
+                cgr(seq, k, counts)
+                kmers.append(counts / np.sum(counts))
+                
+                lines = []
+                seq_id = line[1:-1].decode()  # Modify this according to your labels.  
+            seq_id = line[1:-1].decode()
+        
+        else:
+            lines += [line.strip()]
+  
+    seq = bytearray().join(lines)
+    names.append(seq_id)
+    if transform:
+        transform(seq)
+        
+    counts = np.ones(4**k, dtype=np.int32)
+    #kmer_counts(seq, k, counts)
+    cgr(seq, k, counts)
+    kmers.append(counts / np.sum(counts))
+    return names, np.array(kmers)
+
  
 import time 
 def AugmentFasta(sequence_file, n_mimics, k=6, reduce=False):
@@ -379,7 +419,10 @@ def create_dataloader(sequence_file, n_mimics, k=6, batch_size=512, GT_file=None
 
     train_data = AugmentFasta(sequence_file, n_mimics, k=k, reduce=reduce)
     training_set = AugmentedDataset(train_data)
-    return DataLoader(training_set, batch_size=batch_size, shuffle=True, num_workers=4)
+    if os.name == 'posix':
+        return DataLoader(training_set, batch_size=batch_size, shuffle=True, num_workers=4)
+    else:
+        return DataLoader(training_set, batch_size=batch_size, shuffle=True, num_workers=0)
 
 
 #-------------------- The following couple of functions are for plotting and saving the point cloud during training-----
@@ -485,45 +528,50 @@ def plot_confusion_matrix(cm,
                           normalize=False,
                           ax=None):
 
-    
-    if not isinstance(pairs, np.ndarray):
-        accuracy = np.trace(cm)
+    if len(target_names) > 16:
+        ax.text(0, 0.5, "The confusion matrix is too big to display, see .tsv file instead", fontsize=12)
+        ax.axis("off")
+
     else:
-        accuracy = 0
-        for i, j in pairs:
-            accuracy += cm[j][i]
-    accuracy /= float(np.sum(cm))
-    misclass = 1 - accuracy
 
-    if cmap is None:
-        cmap = plt.get_cmap('Blues')
-
-    ax.imshow(cm, interpolation='nearest', cmap=cmap)
-    ax.set_title(title)
-
-    if target_names is not None:
-        tick_marks = np.arange(len(target_names))
-        ax.set_xticks(tick_marks)
-        ax.set_xticklabels([''] * len(target_names))  # , rotation=45)
-        ax.set_yticks(tick_marks)
-        ax.set_yticklabels(target_names)
-
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-
-    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        if normalize:
-            ax.text(j, i, "{:0.3f}".format(cm[i, j]),
-                    horizontalalignment="center",
-                    color="white" if cm[i, j] > thresh else "black")
+        if not isinstance(pairs, np.ndarray):
+            accuracy = np.trace(cm)
         else:
-            ax.text(j, i, "{:,}".format(cm[i, j]),
-                    horizontalalignment="center",
-                    color="white" if cm[i, j] > thresh else "black")
+            accuracy = 0
+            for i, j in pairs:
+                accuracy += cm[j][i]
+        accuracy /= float(np.sum(cm))
+        misclass = 1 - accuracy
 
-    ax.set_ylabel('True label')
-    ax.set_xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+        if cmap is None:
+            cmap = plt.get_cmap('Blues')
+
+        ax.imshow(cm, interpolation='nearest', cmap=cmap)
+        ax.set_title(title)
+
+        if target_names is not None:
+            tick_marks = np.arange(len(target_names))
+            ax.set_xticks(tick_marks)
+            ax.set_xticklabels([''] * len(target_names))  # , rotation=45)
+            ax.set_yticks(tick_marks)
+            ax.set_yticklabels(target_names)
+
+        if normalize:
+            cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+        thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+            if normalize:
+                ax.text(j, i, "{:0.3f}".format(cm[i, j]),
+                        horizontalalignment="center",
+                        color="white" if cm[i, j] > thresh else "black")
+            else:
+                ax.text(j, i, "{:,}".format(cm[i, j]),
+                        horizontalalignment="center",
+                        color="white" if cm[i, j] > thresh else "black")
+
+        ax.set_ylabel('True label')
+        ax.set_xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
 
 
 from sklearn.metrics.pairwise import euclidean_distances
@@ -558,8 +606,8 @@ def compute_results(y_pred, data, y_true=None):
     d['Silhouette-Score'] = metrics.silhouette_score(data, y_pred)
 
     if not y_true is None:
-        #d['NMI'] = metrics.adjusted_mutual_info_score(y_true, y_pred)
-        #d['ARI'] = metrics.adjusted_rand_score(y_true, y_pred)
+        d['NMI'] = metrics.adjusted_mutual_info_score(y_true, y_pred)
+        d['ARI'] = metrics.adjusted_rand_score(y_true, y_pred)
         d['Homogeneity'] = metrics.homogeneity_score(y_true, y_pred)
         d['Completeness'] = metrics.completeness_score(y_true, y_pred)
 
@@ -570,50 +618,3 @@ def compute_results(y_pred, data, y_true=None):
 
     return d, None
 
-
-
-        
-from itertools import permutations, product
-import sys
-
-def modified_Hungarian(test):
-    rows, cols = linear_sum_assignment(test)
-    new_cols = np.array(list(set(range(test.shape[1])).difference(cols)))
-
-    if new_cols.shape[0] != 0:
-        minval = sys.maxsize
-
-        for i in permutations(new_cols, len(new_cols)):
-            for j in product(rows, repeat=len(new_cols)):
-                _sum = sum(test[j,i])
-                if _sum < minval:
-                    good_assignment = (j,i)
-
-                minval = min(minval, _sum)
-
-        full_rows = np.array(list(rows) + list(good_assignment[0]))
-        full_cols = np.array(list(cols) + list(good_assignment[1]))
-    else:
-        full_rows, full_cols = rows, cols
-
-    return full_rows, full_cols
-
-def modified_cluster_acc(y_true, y_pred):
-    """
-    Calculate clustering accuracy with more predicted clusters than true labels
-    :param y_true: true labels, numpy.array with shape `(n_samples,)`
-    :param y_pred: predicted labels, numpy.array with shape `(n_samples,)`
-    :return:  accuracy, in [0,1]
-    """
-
-    y_true = y_true.astype(np.int64)
-    w = np.zeros((y_true.max() + 1, y_pred.max() + 1), dtype=np.int64)
-
-    for i in range(y_pred.size):
-        w[y_true[i], y_pred[i]] += 1
-    
-    #print(w)
-
-    ind = modified_Hungarian(w.max() - w)
-    ind = np.asarray(ind).T
-    return ind, sum([w[i, j] for i, j in ind]) * 1.0 / y_pred.size

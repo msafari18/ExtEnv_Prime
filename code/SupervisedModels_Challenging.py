@@ -2,27 +2,29 @@ import json
 import os
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import StratifiedKFold, StratifiedGroupKFold
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import StratifiedGroupKFold
 from src.utils import SummaryFasta, kmersFasta
-import argparse
-
 import warnings
+from multiprocessing import Lock
 
 warnings.filterwarnings("ignore")
-PATH = "/content/drive/MyDrive/anew"
+lock = Lock()
 
 def save_results(result, dataset, result_folder, run):
     file_path = os.path.join(result_folder, f'Challenging_Supervised_Results_{dataset}.json')
-    existing_data = {}
-    if os.path.isfile(file_path):
-        with open(file_path, 'r') as file:
-            existing_data = json.load(file)
-    existing_data[run] = result
-    with open(file_path, 'w') as file:
-        json.dump(existing_data, file, indent=2)
+    lock.acquire()  # Acquire lock before accessing the file
+    try:
+        existing_data = {}
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as file:
+                existing_data = json.load(file)
+        if run in existing_data.keys():
+            existing_data = {}
+        existing_data[run] = result
+        with open(file_path, 'w') as file:
+            json.dump(existing_data, file, indent=2)
+    finally:
+        lock.release()  # Ensure the lock is always released
 
 
 def load_json_results(path, continue_flag):
@@ -49,17 +51,17 @@ def preprocess_data(fasta_file, summary_file):
     return data
 
 
-def run_supervised_classification_challenging(fasta_file, max_k, result_folder, env, exp, classifiers):
+def run_supervised_classification_challenging(path, fasta_file, max_k, result_folder, env, exp, classifiers):
     ###### change this
-    data = preprocess_data(fasta_file, f"{PATH}/Extremophiles_GTDB.tsv")
+    data = preprocess_data(fasta_file, f"{path}/Extremophiles_GTDB.tsv")
     results_json = {}
     for k in range(1, max_k + 1):
         results_json[k] = {}
         _, kmers = kmersFasta(fasta_file, k=k, transform=None, reduce=True)
         kmers_normalized = np.transpose((np.transpose(kmers) / np.linalg.norm(kmers, axis=1)))
         results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env, data, classifiers)
-        print(f"Finished processing k = {k}")
-
+        print(f"Finished processing k = {k}", flush=True)
+        del kmers_normalized
     save_results(results_json, env, result_folder, exp)
 
 

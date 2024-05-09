@@ -1,11 +1,10 @@
+import re
 import pandas as pd
 import os
-import argparse
 import matplotlib.pyplot as plt
 import random
 
 plt.rcParams["font.family"] = "Times New Roman"
-
 DATASET_FILE = "Extremophiles_GTDB.tsv"
 
 def summary_fasta(filename, min_len):
@@ -37,6 +36,7 @@ def summary_fasta(filename, min_len):
 
 def process_sequence(lines, seq_id, min_len, names, seqs, plasmids):
     sequence = "".join(lines)
+    sequence = clean_sequence(sequence)
     if len(sequence) >= min_len:
         if 'plasmid' in seq_id.lower():
             plasmids.append(seq_id)
@@ -119,6 +119,9 @@ def filter_assemblies(dataset, path):
 
     return dataset[~dataset['Assembly'].isin(removed)]
 
+def clean_sequence(sequence):
+    # Replace any character not A, C, G, T, or N with N
+    return re.sub(r'[^ACGTN]', 'N', sequence)
 
 def process_environmental_data(dataset_env, path, env_folder, env_type, fragment_length, whole_genome):
     aux_dataset = []

@@ -3,26 +3,27 @@ import os
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
-from src.utils import SummaryFasta, kmersFasta
-import argparse
+from src.utils import kmersFasta
 
 import warnings
+from multiprocessing import Lock
 
 warnings.filterwarnings("ignore")
-
+lock = Lock()
 
 def save_results(result, dataset, result_folder, run):
     file_path = os.path.join(result_folder, f'Supervised_Results_{dataset}.json')
-    existing_data = {}
-    if os.path.isfile(file_path):
-        with open(file_path, 'r') as file:
-            existing_data = json.load(file)
-    existing_data[run] = result
-    with open(file_path, 'w') as file:
-        json.dump(existing_data, file, indent=2)
+    lock.acquire()  # Acquire lock before accessing the file
+    try:
+        existing_data = {}
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as file:
+                existing_data = json.load(file)
+        existing_data[run] = result
+        with open(file_path, 'w') as file:
+            json.dump(existing_data, file, indent=2)
+    finally:
+        lock.release()  # Ensure the lock is always released
 
 
 def load_json_results(path, continue_flag):
@@ -40,8 +41,8 @@ def run_supervised_classification(fasta_file, max_k, result_folder, env, exp, cl
         _, kmers = kmersFasta(fasta_file, k=k, transform=None, reduce=True)
         kmers_normalized = np.transpose((np.transpose(kmers) / np.linalg.norm(kmers, axis=1)))
         results_json = perform_classification(kmers_normalized, k, results_json, result_folder, env, classifiers)
-        print(f"Finished processing k = {k}")
-
+        print(f"Finished processing k = {k}", flush=True)
+        del kmers_normalized
     save_results(results_json, env, result_folder, exp)
 
 
