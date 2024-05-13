@@ -16,11 +16,11 @@ from src.utils import kmersFasta
 from sklearn.cluster import MeanShift
 from sklearn.cluster import AffinityPropagation
 
-plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "serif",
-    "font.serif": ["Times"],
-})
+# plt.rcParams.update({
+#     "text.usetex": True,
+#     "font.family": "serif",
+#     "font.serif": ["Times"],
+# })
 
 # Configuration and data preparation
 
@@ -43,7 +43,7 @@ def VAE(sequence_file, latent_file=None):
     latent = vae.encode(dataloader)
     names = composition.metadata.identifiers
 
-    return names, latent, composition
+    return names, latent
 
 
 def CL(sequence_file=None, latent_file=None):
@@ -58,27 +58,22 @@ def UMAP(sequence_file=None, latent_file=None):
 
 
 # Clustering functions
-# def IM(latent, names):
-#     cluster_iterator = vamb.cluster.cluster(latent.astype(np.float32), labels=names)
-#     cluster_dict = {}
-#     for cluster_name, seq_names in cluster_iterator:
-#         for seq_id in seq_names:
-#             cluster_dict.setdefault(seq_id, []).append(cluster_name)
-#     return np.array([cluster_dict[_id][0] for _id in names if _id in cluster_dict])
-def IM(latent, names, composition):
-  # clusters: Iterable[tuple[str, Iterable[str]]], separator: str
+def IM(latent, names, sequence_file):
+    # clusters: Iterable[tuple[str, Iterable[str]]], separator: str
+    latent = np.float32(latent)
+    # Cluster and output clusters
+    with vamb.vambtools.Reader(sequence_file) as filehandle:
+        composition = vamb.parsecontigs.Composition.from_file(filehandle)
+    clusters = {}
+    labels = [-1] * len(names)
+    for (n, cluster) in enumerate(vamb.cluster.ClusterGenerator(latent, composition.metadata.lengths)):
+        members = list(cluster.members)
+        for i in members:
+            labels[i] = n
 
-# Cluster and output clusters
 
-  clusterer = vamb.cluster.ClusterGenerator(latent, composition.metadata.lengths)
-  binsplit_clusters = vamb.vambtools.binsplit(
-      (
-          (names[cluster.medoid], {names[m] for m in cluster.members})
-          for cluster in clusterer
-      ),
-      "C"
-  )
-  print(binsplit_clusters)
+    print(labels)
+    return labels
 
 
 def meanshift(latent, names):
@@ -149,7 +144,7 @@ def run_models(env, path, fragment_length, k):
                                            "pH", "Phylum", "Class", "Order",
                                            "Family", "Genus", "Species"])
     summary_dataset.dropna(subset=[env], inplace=True)
-    GT_file = os.path.join(result_folder, env, f'{path}/Extremophiles_{env}_GT_Tax.tsv')
+    GT_file = os.path.join(result_folder, env, f'Extremophiles_{env}_GT_Tax.tsv')
 
     sequence_file = os.path.join(result_folder, env, f'Extremophiles_{env}.fas')
     idelucs_params = {'sequence_file': sequence_file, 'n_clusters': 200, 'n_epochs': 50, 'n_mimics': 3,
@@ -162,26 +157,29 @@ def run_models(env, path, fragment_length, k):
         "iDeLUCS": ""
     }
 
-    clust_algorithms = {"HDBSCAN": DBSCAN, "affinity_propagation": affinity_propagation, "meanshift": meanshift}
+    clust_algorithms = {"IM": IM, "HDBSCAN": DBSCAN, "affinity_propagation": affinity_propagation,
+                        "meanshift": meanshift}
 
     for model_name, model_func in models.items():
         print(f"......... Processing {model_name} ...............")
         if model_name == "iDeLUCS":
             model = iDeLUCS_cluster(**idelucs_params)
             labels, latent = model.fit_predict(sequence_file)
-            # names = [label[0] for label in labels]  # Assuming labels includes names
-            # labels = [label[1] for label in labels]  # Assuming labels includes actual cluster labels
+
         else:
             names, latent = model_func(sequence_file)
             for clust_name, clust_func in clust_algorithms.items():
-                labels = clust_func(latent, names)
-                assignment_algo = f'{model_name}+{clust_name}'
-                print(names)
-                insert_assignment(summary_dataset, assignment_algo, GT_file, labels)
+                if clust_name == "IM":
+                    labels = clust_func(latent, names, sequence_file)
+                else:
+                    labels = clust_func(latent, names)
+                    assignment_algo = f'{model_name}+{clust_name}'
+                    insert_assignment(summary_dataset, assignment_algo, GT_file, labels)
         if model_name == "iDeLUCS":
             insert_assignment(summary_dataset, model_name, GT_file, labels)
 
-    algo_names = [f'{dim_name}+{clust_name}' for dim_name in models for clust_name in clust_algorithms]
+    algo_names = [f'{dim_name}+{clust_name}' for dim_name in models for clust_name in clust_algorithms if
+                  dim_name != "iDeLUCS"]
     algo_names.append('iDeLUCS')  # Add the standalone iDeLUCS algorithm
 
     return summary_dataset, algo_names
@@ -214,6 +212,8 @@ def analyze_result(summary_dataset, dataset_column):
 def analyze_clustering(algo_names, summary_dataset, env):
     df = pd.DataFrame()
     GOOD_CLUSTERS = {}
+    df = analyze_result(summary_dataset, env)
+
     print(algo_names)
     for name in algo_names:
         results_df = pd.DataFrame({
@@ -256,7 +256,6 @@ def analyze_clustering(algo_names, summary_dataset, env):
         print(df2)
         print(df2['Count'].sum())
 
-        df = analyze_result(summary_dataset, env)
         # Update df for plotting
         df[name] = np.zeros(len(df))
         look = df2.set_index(env)['Count'].to_dict()
