@@ -71,8 +71,6 @@ def IM(latent, names, sequence_file):
         for i in members:
             labels[i] = n
 
-
-    print(labels)
     return labels
 
 
@@ -171,6 +169,8 @@ def run_models(env, path, fragment_length, k):
             for clust_name, clust_func in clust_algorithms.items():
                 if clust_name == "IM":
                     labels = clust_func(latent, names, sequence_file)
+                    assignment_algo = f'{model_name}+{clust_name}'
+                    insert_assignment(summary_dataset, assignment_algo, GT_file, labels)
                 else:
                     labels = clust_func(latent, names)
                     assignment_algo = f'{model_name}+{clust_name}'
