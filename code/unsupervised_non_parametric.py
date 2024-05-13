@@ -43,7 +43,7 @@ def VAE(sequence_file, latent_file=None):
     latent = vae.encode(dataloader)
     names = composition.metadata.identifiers
 
-    return names, latent
+    return names, latent, composition
 
 
 def CL(sequence_file=None, latent_file=None):
@@ -65,6 +65,21 @@ def UMAP(sequence_file=None, latent_file=None):
 #         for seq_id in seq_names:
 #             cluster_dict.setdefault(seq_id, []).append(cluster_name)
 #     return np.array([cluster_dict[_id][0] for _id in names if _id in cluster_dict])
+def IM(latent, names, composition):
+  # clusters: Iterable[tuple[str, Iterable[str]]], separator: str
+
+# Cluster and output clusters
+
+  clusterer = vamb.cluster.ClusterGenerator(latent, composition.metadata.lengths)
+  binsplit_clusters = vamb.vambtools.binsplit(
+      (
+          (names[cluster.medoid], {names[m] for m in cluster.members})
+          for cluster in clusterer
+      ),
+      "C"
+  )
+  print(binsplit_clusters)
+
 
 def meanshift(latent, names):
     mean_shift = MeanShift(bandwidth=1).fit(latent)
@@ -89,7 +104,7 @@ def iDeLUCS(sequence_file=None, params=None):
     return model.fit_predict(sequence_file)
 
 
-def insert_assignment(summary_dataset, assignment_algo, names, labels):
+def insert_assignment(summary_dataset, assignment_algo, GT_file, labels):
     """
     Updates the summary dataset with new cluster assignments and calculates cluster quality metrics using the specified taxonomic level.
 
@@ -100,9 +115,14 @@ def insert_assignment(summary_dataset, assignment_algo, names, labels):
         labels (list): List of labels corresponding to the names.
     """
     # Create a mapping from names to labels for easier updates.
-    name_to_label = dict(zip(names, labels))
-    # Update the summary dataset with new labels.
-    summary_dataset[assignment_algo] = summary_dataset['Assembly'].map(name_to_label)
+    # name_to_label = dict(zip(names, labels))
+    # # Update the summary dataset with new labels.
+    # summary_dataset[assignment_algo] = summary_dataset['Assembly'].map(name_to_label)
+    summary_dataset[assignment_algo] = pd.Series(dtype='int')
+    df = pd.read_csv(GT_file, sep='\t')
+
+    for i, acc in enumerate(df["Assembly"].values):
+        summary_dataset.loc[summary_dataset["Assembly"] == acc, assignment_algo] = labels[i]
 
     # Calculate and print the clustering quality metrics.
     if TAX_LEVEL in summary_dataset:
@@ -129,6 +149,7 @@ def run_models(env, path, fragment_length, k):
                                            "pH", "Phylum", "Class", "Order",
                                            "Family", "Genus", "Species"])
     summary_dataset.dropna(subset=[env], inplace=True)
+    GT_file = os.path.join(result_folder, env, f'{path}/Extremophiles_{env}_GT_Tax.tsv')
 
     sequence_file = os.path.join(result_folder, env, f'Extremophiles_{env}.fas')
     idelucs_params = {'sequence_file': sequence_file, 'n_clusters': 200, 'n_epochs': 50, 'n_mimics': 3,
@@ -148,24 +169,25 @@ def run_models(env, path, fragment_length, k):
         if model_name == "iDeLUCS":
             model = iDeLUCS_cluster(**idelucs_params)
             labels, latent = model.fit_predict(sequence_file)
-            names = [label[0] for label in labels]  # Assuming labels includes names
-            labels = [label[1] for label in labels]  # Assuming labels includes actual cluster labels
+            # names = [label[0] for label in labels]  # Assuming labels includes names
+            # labels = [label[1] for label in labels]  # Assuming labels includes actual cluster labels
         else:
             names, latent = model_func(sequence_file)
             for clust_name, clust_func in clust_algorithms.items():
                 labels = clust_func(latent, names)
                 assignment_algo = f'{model_name}+{clust_name}'
-                insert_assignment(summary_dataset, assignment_algo, names, labels)
+                print(names)
+                insert_assignment(summary_dataset, assignment_algo, GT_file, labels)
         if model_name == "iDeLUCS":
-            insert_assignment(summary_dataset, model_name, names, labels)
+            insert_assignment(summary_dataset, model_name, GT_file, labels)
 
-    algo_names = [f'{dim_name}+{clust_name}' for dim_name, _ in models for clust_name, _ in clust_algorithms]
+    algo_names = [f'{dim_name}+{clust_name}' for dim_name in models for clust_name in clust_algorithms]
     algo_names.append('iDeLUCS')  # Add the standalone iDeLUCS algorithm
 
     return summary_dataset, algo_names
 
 
-def analyze_result(summary_dataset, dataset_column, dim_algorithms, clust_algorithms):
+def analyze_result(summary_dataset, dataset_column):
     """
     Analyzes the dataset to count significant taxa for each environmental condition
     and generates a list of algorithm names based on dimensionality and clustering methods.
@@ -186,16 +208,13 @@ def analyze_result(summary_dataset, dataset_column, dim_algorithms, clust_algori
 
     df_env_taxa = pd.DataFrame(list(env_taxonomic_counts.items()), columns=[dataset_column, 'Significant Taxa Count'])
 
-    algo_names = [f'{dim_name}+{clust_name}' for dim_name, _ in dim_algorithms for clust_name, _ in clust_algorithms]
-    algo_names.append('iDeLUCS')  # Add the standalone iDeLUCS algorithm
-
-    return df_env_taxa, algo_names
+    return df_env_taxa
 
 
 def analyze_clustering(algo_names, summary_dataset, env):
     df = pd.DataFrame()
     GOOD_CLUSTERS = {}
-
+    print(algo_names)
     for name in algo_names:
         results_df = pd.DataFrame({
             name: summary_dataset[name],
@@ -210,8 +229,9 @@ def analyze_clustering(algo_names, summary_dataset, env):
         results_df['true_size'] = results_df['mode_cluster'].map(genus_size)
 
         # Calculate the mode size for each cluster
-        mode_size = summary_dataset[summary_dataset['mode_cluster'] == summary_dataset['true_genus']].groupby(name)[
+        mode_size = summary_dataset[results_df['mode_cluster'] == results_df['true_genus']].groupby(name)[
             name].count().to_dict()
+
         results_df['mode_size'] = results_df[name].map(mode_size)
 
         # Calculate completeness and contamination
@@ -236,6 +256,7 @@ def analyze_clustering(algo_names, summary_dataset, env):
         print(df2)
         print(df2['Count'].sum())
 
+        df = analyze_result(summary_dataset, env)
         # Update df for plotting
         df[name] = np.zeros(len(df))
         look = df2.set_index(env)['Count'].to_dict()

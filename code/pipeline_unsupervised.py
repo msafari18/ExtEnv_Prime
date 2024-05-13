@@ -1,5 +1,5 @@
 import argparse
-from clustering_new import run_models, analyze_clustering
+from unsupervised_non_parametric import run_models, analyze_clustering
 
 ENVS = ["Temperature", "pH"]
 NUM_CLUSTERS = {"Temperature": 4, "pH": 2}
@@ -16,8 +16,8 @@ def run_pipeline(args):
     elif args["exp_type"] == "non-parametric":
         for env in ENVS:
             summary_dataset, algo_names = run_models(env, PATH, fragement_length, k)
-            for algo in algo_names:
-                analyze_clustering(algo, summary_dataset, env)
+            # for algo in algo_names:
+            analyze_clustering(algo_names, summary_dataset, env)
 
 def main():
     parser = argparse.ArgumentParser()

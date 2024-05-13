@@ -6,9 +6,9 @@ from sklearn.svm import SVC
 import os
 
 
-from Build_Signature_Dataset_v2 import run_fragment_builder
-from SupervisedModels import run_supervised_classification
-from SupervisedModels_Challenging import run_supervised_classification_challenging
+from build_signature_dataset import run_fragment_builder
+from supervised_models import run_supervised_classification
+from supervised_models_challenging import run_supervised_classification_challenging
 
 ENVS = ["Temperature", "pH"]
 NUM_CLUSTERS = {"Temperature": 4, "pH": 2}

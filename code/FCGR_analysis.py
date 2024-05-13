@@ -34,19 +34,19 @@ def draw_fcgrs(sequence, id, len, domain, env_label, env):
     for (x, y), label in zip(points, labels):
         plt.text(x, y, label, color='black', fontsize=12, ha='center', va='center')
     plt.show()
-    # plt.tight_layout(pad=3.0)
-    # if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}"):
-    #     os.makedirs(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}")
-    # plt.savefig(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}/{id}.png", dpi=300)
-    #
-    # if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}"):
-    #     os.makedirs(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}")
-    # plt.savefig(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}/{id}.png", dpi=300)
-    #
-    # if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/all"):
-    #     os.makedirs(f"../fcgrs/fragment_{len}/{k}/all")
-    # plt.savefig(f"../fcgrs/fragment_{len}/{k}/all/{id}.png", dpi=300)
-    # plt.close()
+    plt.tight_layout(pad=3.0)
+    if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}"):
+        os.makedirs(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}")
+    plt.savefig(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}/{id}.png", dpi=300)
+
+    if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}"):
+        os.makedirs(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}")
+    plt.savefig(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}/{id}.png", dpi=300)
+
+    if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/all"):
+        os.makedirs(f"../fcgrs/fragment_{len}/{k}/all")
+    plt.savefig(f"../fcgrs/fragment_{len}/{k}/all/{id}.png", dpi=300)
+    plt.close()
 
 def read_fasta(file_path):
 
@@ -109,27 +109,27 @@ centroid = {
     }
 }
 
-# id_2_sequences = run(centroid)
+id_2_sequences = run(centroid)
 
-result_folder = f"../exp2/0/fragments_{100000}"
-fasta_file = os.path.join(result_folder, "Temperature", f'Extremophiles_Temperature.fas')
-summary_path = f"../exp2/0/fragments_{100000}/Temperature/Extremophiles_Temperature_Summary.tsv"
-summary_data = pd.read_csv(summary_path, sep='\t')
-id_2_sequences = read_fasta(fasta_file)
-
-hyperthermophile = id_2_sequences["GCA_000007185.1"]
-thermophile = id_2_sequences["GCA_000008645.1"]
-joint_seq = hyperthermophile + "N" + thermophile
-print(len(joint_seq))
-draw_fcgrs(hyperthermophile, "GCA_000007185.1_Archea", len(hyperthermophile), "Archea", "hyperthermophile", "Temperature")
-draw_fcgrs(thermophile, "GCA_000008645.1_Archea", len(thermophile), "Archea", "thermophile", "Temperature")
-draw_fcgrs(joint_seq, "mixed", len(joint_seq), "Archea", "mixed", "Temperature")
-
-
-hyperthermophile = id_2_sequences["GCA_000016785.1"]
-thermophile = id_2_sequences["GCA_000020965.1"]
-joint_seq = hyperthermophile + "N" + thermophile
-print(len(joint_seq))
-draw_fcgrs(hyperthermophile, "GCA_000016785.1_Bacteria", len(hyperthermophile), "Bacteria", "hyperthermophile", "Temperature")
-draw_fcgrs(thermophile, "GCA_000020965.1_Bacteria", len(thermophile), "Bacteria", "thermophile", "Temperature")
-draw_fcgrs(joint_seq, "mixed", len(joint_seq), "Bacteria", "mixed", "Temperature")
+# result_folder = f"../exp2/0/fragments_{100000}"
+# fasta_file = os.path.join(result_folder, "Temperature", f'Extremophiles_Temperature.fas')
+# summary_path = f"../exp2/0/fragments_{100000}/Temperature/Extremophiles_Temperature_Summary.tsv"
+# summary_data = pd.read_csv(summary_path, sep='\t')
+# id_2_sequences = read_fasta(fasta_file)
+#
+# hyperthermophile = id_2_sequences["GCA_000007185.1"]
+# thermophile = id_2_sequences["GCA_000008645.1"]
+# joint_seq = hyperthermophile + "N" + thermophile
+# print(len(joint_seq))
+# draw_fcgrs(hyperthermophile, "GCA_000007185.1_Archea", len(hyperthermophile), "Archea", "hyperthermophile", "Temperature")
+# draw_fcgrs(thermophile, "GCA_000008645.1_Archea", len(thermophile), "Archea", "thermophile", "Temperature")
+# draw_fcgrs(joint_seq, "mixed", len(joint_seq), "Archea", "mixed", "Temperature")
+#
+#
+# hyperthermophile = id_2_sequences["GCA_000016785.1"]
+# thermophile = id_2_sequences["GCA_000020965.1"]
+# joint_seq = hyperthermophile + "N" + thermophile
+# print(len(joint_seq))
+# draw_fcgrs(hyperthermophile, "GCA_000016785.1_Bacteria", len(hyperthermophile), "Bacteria", "hyperthermophile", "Temperature")
+# draw_fcgrs(thermophile, "GCA_000020965.1_Bacteria", len(thermophile), "Bacteria", "thermophile", "Temperature")
+# draw_fcgrs(joint_seq, "mixed", len(joint_seq), "Bacteria", "mixed", "Temperature")
