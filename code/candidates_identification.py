@@ -11,7 +11,7 @@ GOOD_ALGO = {"Temperature":
 
 def candidates_identification(summary_dataset, env):
     pairs = {}
-    file_path = os.path.join(f'content/candidates_{env}.json')
+    file_path = os.path.join(f'/content/candidates_{env}.json')
     if os.path.isfile(file_path):
         with open(file_path, 'r') as file:
             pairs = json.load(file)
@@ -27,14 +27,14 @@ def candidates_identification(summary_dataset, env):
                 for i in range(len(species) - 1):
                     for j in range(i + 1, len(species)):
                         if group[1]["Domain"].values[i] != group[1]["Domain"].values[j]:
-
-                            if tuple(sorted((species[i], species[j]))) in pairs:
+                            pair = tuple(sorted((species[i], species[j])))
+                            pair_species = str(pair[0]) + "_" + str(pair[1])
+                            if pair_species in pairs:
                                 pairs[pair_species]["algo"].append(name)
                                 pairs[pair_species]["pair_id_first"].append(ids[i])
                                 pairs[pair_species]["pair_id_second"].append(ids[j])
                                 pairs[pair_species]["counts"] += 1
                             else:
-                                pair_species = tuple(sorted((species[i], species[j])))
                                 pairs[pair_species] = {}
                                 pairs[pair_species]["pair_species_first"] = [species[i]]
                                 pairs[pair_species]["pair_species_second"] = [species[j]]
