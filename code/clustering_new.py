@@ -148,7 +148,6 @@ def run_models(env, path, fragment_length, k):
         if model_name == "iDeLUCS":
             model = iDeLUCS_cluster(**idelucs_params)
             labels, latent = model.fit_predict(sequence_file)
-            labels, latent = model_func(sequence_file)
             names = [label[0] for label in labels]  # Assuming labels includes names
             labels = [label[1] for label in labels]  # Assuming labels includes actual cluster labels
         else:
