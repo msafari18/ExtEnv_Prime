@@ -210,7 +210,7 @@ def analyze_result(summary_dataset, dataset_column):
 
 
 def analyze_clustering(algo_names, summary_dataset, env):
-    df = pd.DataFrame()
+
     GOOD_CLUSTERS = {}
     df = analyze_result(summary_dataset, env)
 
@@ -276,4 +276,5 @@ def plot_results(df, env):
 
 # Example usage
 # analyze_clustering_results(summary_dataset, 'Environmental_Condition', algo_names)
+
 
