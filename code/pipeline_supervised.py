@@ -11,8 +11,8 @@ from supervised_models import run_supervised_classification
 from supervised_models_challenging import run_supervised_classification_challenging
 
 ENVS = ["Temperature", "pH"]
-ENVS = ["Radio Label"]
-NUM_CLUSTERS = {"Temperature": 4, "pH": 2, "Radio Label": 2}
+ENVS = ["Radio_label"]
+NUM_CLUSTERS = {"Temperature": 4, "pH": 2, "Radio_label": 2}
 FRAGMENT_LENGTHS = [10000, 50000, 100000, 250000, 500000, 1000000]
 PATH = "/home/m4safari/projects/def-lila-ab/m4safari/ext2/data"
 # PATH = "/content/drive/MyDrive/anew"
@@ -34,9 +34,9 @@ def experiment_task(args, env, exp, fragment_length):
     print(f"\n Classification ended (scenario 1).", flush=True)
 
     # Run the supervised classification under the 2nd scenario (challenging)
-    # print(f"\n Classification is started (scenario 2).")
-    # run_supervised_classification_challenging(PATH, fasta_file, args['max_k'], result_folder, env, exp, args['classifiers'])
-    # print(f"\n Classification ended (scenario 2).", flush=True)
+    print(f"\n Classification is started (scenario 2).")
+    run_supervised_classification_challenging(PATH, fasta_file, args['max_k'], result_folder, env, exp, args['classifiers'])
+    print(f"\n Classification ended (scenario 2).", flush=True)
 
 def run_pipeline(args):
     if args["exp_type"] == "exp1":

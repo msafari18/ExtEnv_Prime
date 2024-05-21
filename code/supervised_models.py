@@ -89,10 +89,3 @@ def cross_validate_model(kmers, label_data, algorithm, params):
     average_score = sum(scores) / len(scores)
     print(average_score)
     return average_score
-
-
-
-
-
-
-

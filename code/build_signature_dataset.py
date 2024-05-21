@@ -197,7 +197,3 @@ def export_summary_data(summary_path, env_folder, env_type):
     df = pd.read_csv(summary_path, sep='\t', usecols=['sequence_id', env_type, 'Assembly'])
     df.rename(columns={env_type: 'cluster_id'}, inplace=True)
     df.to_csv(os.path.join(env_folder, f'Extremophiles_{env_type}_GT_Env.tsv'), sep='\t')
-
-
-
-

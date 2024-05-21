@@ -38,7 +38,7 @@ def load_json_results(path, continue_flag):
 def preprocess_data(fasta_file, summary_file):
     names, _, _, _ = SummaryFasta(fasta_file)
     summary_dataset = pd.read_csv(summary_file, sep='\t',
-                                  usecols=["Domain", "Temperature", "Assembly", "pH", "Genus", "Species"])
+                                  usecols=["Domain", "Radio_label", "Assembly", "Genus", "Species"])
     assembly_dict = {name: summary_dataset[summary_dataset["Assembly"] == name].iloc[0]
                      for name in names if summary_dataset["Assembly"].eq(name).any()}
     data = pd.DataFrame({
@@ -53,7 +53,7 @@ def preprocess_data(fasta_file, summary_file):
 
 def run_supervised_classification_challenging(path, fasta_file, max_k, result_folder, env, exp, classifiers):
     ###### change this
-    data = preprocess_data(fasta_file, f"{path}/Extremophiles_GTDB.tsv")
+    data = preprocess_data(fasta_file, f"{path}/Extremophiles_GTDB_Radio.tsv")
     results_json = {}
     for k in range(1, max_k + 1):
         results_json[k] = {}
@@ -108,12 +108,3 @@ def cross_validate_model(kmers, label_data, algorithm, params, data):
     average_score = sum(scores) / len(scores)
     print(average_score)
     return average_score
-
-
-
-
-
-
-
-
-
