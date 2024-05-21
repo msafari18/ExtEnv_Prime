@@ -34,19 +34,19 @@ def draw_fcgrs(sequence, id, len, domain, env_label, env):
     for (x, y), label in zip(points, labels):
         plt.text(x, y, label, color='black', fontsize=12, ha='center', va='center')
     plt.show()
-    plt.tight_layout(pad=3.0)
-    if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}"):
-        os.makedirs(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}")
-    plt.savefig(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}/{id}.png", dpi=300)
-
-    if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}"):
-        os.makedirs(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}")
-    plt.savefig(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}/{id}.png", dpi=300)
-
-    if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/all"):
-        os.makedirs(f"../fcgrs/fragment_{len}/{k}/all")
-    plt.savefig(f"../fcgrs/fragment_{len}/{k}/all/{id}.png", dpi=300)
-    plt.close()
+    # plt.tight_layout(pad=3.0)
+    # if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}"):
+    #     os.makedirs(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}")
+    # plt.savefig(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}/{id}.png", dpi=300)
+    #
+    # if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}"):
+    #     os.makedirs(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}")
+    # plt.savefig(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}/{id}.png", dpi=300)
+    #
+    # if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/all"):
+    #     os.makedirs(f"../fcgrs/fragment_{len}/{k}/all")
+    # plt.savefig(f"../fcgrs/fragment_{len}/{k}/all/{id}.png", dpi=300)
+    # plt.close()
 
 def read_fasta(file_path):
 

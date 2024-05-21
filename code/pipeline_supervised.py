@@ -11,10 +11,11 @@ from supervised_models import run_supervised_classification
 from supervised_models_challenging import run_supervised_classification_challenging
 
 ENVS = ["Temperature", "pH"]
-NUM_CLUSTERS = {"Temperature": 4, "pH": 2}
+ENVS = ["Radio Label"]
+NUM_CLUSTERS = {"Temperature": 4, "pH": 2, "Radio Label": 2}
 FRAGMENT_LENGTHS = [10000, 50000, 100000, 250000, 500000, 1000000]
-# PATH = "/home/m4safari/projects/def-lila-ab/m4safari/ext1prime/data"
-PATH = "/content/drive/MyDrive/anew"
+PATH = "/home/m4safari/projects/def-lila-ab/m4safari/ext2/data"
+# PATH = "/content/drive/MyDrive/anew"
 
 
 def experiment_task(args, env, exp, fragment_length):

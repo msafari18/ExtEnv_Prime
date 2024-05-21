@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import random
 
 plt.rcParams["font.family"] = "Times New Roman"
-DATASET_FILE = "Extremophiles_GTDB.tsv"
+DATASET_FILE = "Extremophiles_GTDB_Radio.tsv"
 
 def summary_fasta(filename, min_len):
     names, seqs, plasmids = [], [], []
