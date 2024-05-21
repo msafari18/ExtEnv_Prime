@@ -40,9 +40,10 @@ def process_sequence(lines, seq_id, min_len, names, seqs, plasmids):
     if len(sequence) >= min_len:
         if 'plasmid' in seq_id.lower():
             plasmids.append(seq_id)
-        else:
-            names.append(seq_id)
-            seqs.append(sequence)
+        # else:
+        #including plasmid in the fragment building
+        names.append(seq_id)
+        seqs.append(sequence)
 
 
 def max_subfragments(L, l, max_num_part):
