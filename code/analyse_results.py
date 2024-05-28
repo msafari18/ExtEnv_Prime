@@ -5,7 +5,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
-PATH = "../exp2/0"
+PATH = "../data/extremophile2/exp2/0/"
 # Function to load and transform JSON data into a DataFrame
 def load_json(file_paths):
     all_data = pd.DataFrame()
@@ -62,7 +62,7 @@ def run(env, scenario= "normal"):
     find_best_k_for_each_fragment(df, env, scenario)
     find_best_fragment_for_each_k(df, env, scenario)
     create_plots('env', models, files, df, env, scenario)
-    create_plots('taxa', models, files, df, env, scenario)
+    # create_plots('taxa', models, files, df, env, scenario)
 
 def find_best_k_for_each_fragment(df, env, scenario):
     best_ks = []
@@ -161,6 +161,7 @@ def create_plots(score_type, models, files, df, env, senario):
 
 
 ENVS = ["Temperature", "pH"]
+ENVS = ["Radio_label"]
 for env in ENVS:
-    run(env, "normal")
+    # run(env, "normal")
     run(env, "challenging")

@@ -33,20 +33,20 @@ def draw_fcgrs(sequence, id, len, domain, env_label, env):
     # Annotating each point
     for (x, y), label in zip(points, labels):
         plt.text(x, y, label, color='black', fontsize=12, ha='center', va='center')
-    plt.show()
-    # plt.tight_layout(pad=3.0)
-    # if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}"):
-    #     os.makedirs(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}")
-    # plt.savefig(f"../fcgrs/fragment_{len}/{k}/taxa/{domain}/{id}.png", dpi=300)
-    #
-    # if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}"):
-    #     os.makedirs(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}")
-    # plt.savefig(f"../fcgrs/fragment_{len}/{k}/{env}/{env_label}/{id}.png", dpi=300)
-    #
-    # if not os.path.exists(f"../fcgrs/fragment_{len}/{k}/all"):
-    #     os.makedirs(f"../fcgrs/fragment_{len}/{k}/all")
-    # plt.savefig(f"../fcgrs/fragment_{len}/{k}/all/{id}.png", dpi=300)
-    # plt.close()
+    # plt.show()
+    plt.tight_layout(pad=3.0)
+    if not os.path.exists(f"../centroid/fragment_{len}/{k}/taxa/{domain}"):
+        os.makedirs(f"../centroid/fragment_{len}/{k}/taxa/{domain}")
+    plt.savefig(f"../centroid/fragment_{len}/{k}/taxa/{domain}/{id}.png", dpi=300)
+
+    if not os.path.exists(f"../centroid/fragment_{len}/{k}/{env}/{env_label}"):
+        os.makedirs(f"../centroid/fragment_{len}/{k}/{env}/{env_label}")
+    plt.savefig(f"../centroid/fragment_{len}/{k}/{env}/{env_label}/{id}.png", dpi=300)
+
+    if not os.path.exists(f"../centroid/fragment_{len}/{k}/all"):
+        os.makedirs(f"../centroid/fragment_{len}/{k}/all")
+    plt.savefig(f"../centroid/fragment_{len}/{k}/all/{id}.png", dpi=300)
+    plt.close()
 
 def read_fasta(file_path):
 
@@ -74,15 +74,18 @@ def run(centroid):
             summary_path = f"../exp2/0/fragments_{fragment_length}/{env}/Extremophiles_{env}_Summary.tsv"
             summary_data = pd.read_csv(summary_path, sep='\t')
 
-
             id_2_sequences = read_fasta(fasta_file)
-            for key  in centroid[env][fragment_length].keys():
+
+            print(len(id_2_sequences))
+            # for id in id_2_sequences:
+            for key in centroid[env][fragment_length].keys():
+
                 id = centroid[env][fragment_length][key]
-                print(id)
-                print(list(summary_data[summary_data['Assembly'] == id]))
+                # print(id)
+                # print(list(summary_data[summary_data['Assembly'] == id]))
                 domain = str(list(summary_data[summary_data['Assembly'] == id]['Domain'])[0])
                 env_label = str(list(summary_data[summary_data['Assembly'] == id][env])[0])
-                print(f"Domain: {domain}, Env: {env_label}")
+                # print(f"Domain: {domain}, Env: {env_label}")
                 sequence = clean_sequence(id_2_sequences[id])
                 draw_fcgrs(sequence, id, fragment_length, domain, env_label, env)
 
@@ -91,23 +94,50 @@ def run(centroid):
 
 
 
+#
+# Temp-Taxa
+# 'Archaea' 'GCA_000012285.1'
+# 'Bacteria' 'GCA_008931805.1'
+#
+#
+#
+# ph-Taxa
+# 'Archaea' 'GCA_000337135.1'
+# 'Bacteria' 'GCA_001447355.1'
+
 centroid = {
     "pH":{
         100000 : {
-       "Acidophiles": "GCA_000012285.1",
-       "Alkaliphiles": "GCA_000255115.3"
+       'Acidophiles': 'GCA_009729035.1',
+       'Alkaliphiles': 'GCA_004745425.1',
     }
     },
 
     "Temperature": {
         100000 : {
-       "Hyperthermophiles": "GCA_000258515.1",
-       "Mesophiles": "GCA_000018465.1",
-       "Psychrophiles": "GCA_000215995.1",
-       "Thermophiles": "GCA_000007305.1"
+       'Hyperthermophiles': 'GCA_000258515.1',
+        'Mesophiles':'GCA_001006765.1',
+        'Psychrophiles':'GCA_008931805.1',
+        'Thermophiles':'GCA_009729035.1',
     }
     }
 }
+
+# centroid = {
+#     "pH":{
+#         100000 : {
+#             'Archaea':'GCA_000337135.1',
+#             'Bacteria': 'GCA_001447355.1',
+#     }
+#     },
+#
+#     "Temperature": {
+#         100000 : {
+#         'Archaea': 'GCA_000012285.1',
+#         'Bacteria': 'GCA_008931805.1',
+#     }
+#     }
+# }
 
 id_2_sequences = run(centroid)
 

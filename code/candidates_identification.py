@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from Bio import SeqIO
 import CGR_utils
 import re
+import numpy as np
+from distance_calculator import descriptor_distance
 
 GOOD_ALGO = {"Temperature":
                  ["VAE+IM", "VAE+affinity_propagation", "VAE+HDBSCAN", "UMAP+HDBSCAN", "iDeLUCS", "CL+HDBSCAN"],
@@ -14,7 +16,7 @@ GOOD_ALGO = {"Temperature":
 
 k = 8
 ENVS = ["Temperature", "pH"]
-
+ids_2_dist = {}
 
 def candidates_identification(summary_dataset, env):
     pairs = {}
@@ -103,7 +105,7 @@ def draw_fcgrs(sequence, id, domain, env_label, species, env):
     # plt.figure(figsize=(12, 8))
     chaos_0 = fcgr(sequence[0])
     chaos_1 = fcgr(sequence[1])
-
+    #
     fig, axes = plt.subplots(1, 2)
 
     axes[0].imshow(fcgr.plot(chaos_0), cmap="gray")
@@ -116,11 +118,18 @@ def draw_fcgrs(sequence, id, domain, env_label, species, env):
     axes[0].set_yticks([])
     axes[1].set_yticks([])
 
-    plt.tight_layout(pad=3.0)
-    if not os.path.exists(f"../candidates/fcgrs/{env}"):
-        os.makedirs(f"../candidates/fcgrs/{env}")
+    ### distance calculation
+    img1 = np.array(fcgr.plot(chaos_0))
+    img2 = np.array(fcgr.plot(chaos_1))
+    dist = descriptor_distance(img1, img2, 2, [0, 8, 16])
+    ids_2_dist[f"{id[0]}_{id[1]}"] = dist
 
-    plt.savefig(f"../candidates/fcgrs/{env}/{id[0]}_{id[1]}.png", dpi=300)
+
+    # plt.tight_layout(pad=3.0)
+    # if not os.path.exists(f"../candidates/fcgrs/{env}"):
+    #     os.makedirs(f"../candidates/fcgrs/{env}")
+    #
+    # plt.savefig(f"../candidates/fcgrs/{env}/{id[0]}_{id[1]}.png", dpi=300)
     #
 
     # Coordinates of points to label (example points)
@@ -130,7 +139,9 @@ def draw_fcgrs(sequence, id, domain, env_label, species, env):
     # Annotating each point
     # for (x, y), label in zip(points, labels):
     #     plt.text(x, y, label, color='black', fontsize=12, ha='center', va='center')
-    plt.show()
+    plt.close()
+    # plt.show()
+
 
 def clean_sequence(sequence):
     # Replace any character not A, C, G, T, or N with N
@@ -166,9 +177,23 @@ def run_FCGR(candidates, env):
 
         draw_fcgrs(sequences, id, domains, env_labels, species, env)
 
-
     return id_2_sequences
 
+
 for env in ENVS:
+    ids_2_dist = {}
     just_pairs_ids = analyse_candidates("../candidates",env)
-    run_FCGR(just_pairs_ids,env)
+    run_FCGR(just_pairs_ids, env)
+    print(ids_2_dist)
+    max_key = max(ids_2_dist, key=ids_2_dist.get)
+    max_value = ids_2_dist[max_key]
+    print(max_key, max_value)
+
+    min_key = min(ids_2_dist, key=ids_2_dist.get)
+    min_value = ids_2_dist[min_key]
+    print(min_key, min_value)
+
+    json_file_path = f'../Distances/candidates_{env}.json'
+    # Write the dictionary to the JSON file
+    with open(json_file_path, 'w') as json_file:
+        json.dump(ids_2_dist, json_file, indent=4)

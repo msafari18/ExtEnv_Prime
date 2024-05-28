@@ -74,7 +74,7 @@ def run(args):
 
     for name, clust_algo in clust_algorithms:
         assignments = clust_algo(sequence_file, args["n_clusters"])
-        ind, acc = cluster_acc(assignments, y_true)
+        ind, acc = modified_cluster_acc(y_true, assignments)
         print(f"{name}: {acc*100}%")
 
 def main():
