@@ -6,7 +6,7 @@ from Bio import SeqIO
 from distance_calculator import read_fasta
 import matplotlib.pyplot as plt
 
-file_path = '../Distances/dssim_distances_pH.xlsx'
+file_path = '../Distances/dists100k6.xlsx'
 
 centroid_env = {
     "pH":{
@@ -57,44 +57,46 @@ def distance_matrix_to_dict(df):
 
 # Convert each sheet to a dictionary
 distance_dicts = {sheet_name: distance_matrix_to_dict(df) for sheet_name, df in excel_data.items()}
-distance_dicts['pH'] = distance_dicts['Sheet1']
+# distance_dicts['temp'] = distance_dicts['Sheet1']
 ######################### distances for candidates
 # path = '../Distances/candidates_pH.json'
-# # path = '../Distances/candidates_Temperature.json'
-# #
-# with open(path) as f:
-#     ids_dict = json.load(f)
+path = '../Distances/candidates_Temperature.json'
 #
-#
-# gurjit_dist = {}
-# gurjit_dist_list = []
-#
-# for id in ids_dict.keys():
-#     gurjit_dist[id] = distance_dicts['pH'][id]
-#     gurjit_dist_list.append(distance_dicts['pH'][id])
-#
-# max_key = max(gurjit_dist, key=gurjit_dist.get)
-# max_value = gurjit_dist[max_key]
-# print(max_key, max_value)
-#
-# max_key = min(gurjit_dist, key=gurjit_dist.get)
-# max_value = gurjit_dist[max_key]
-# print(max_key, max_value)
+with open(path) as f:
+    ids_dict = json.load(f)
 
 
-# x_values = list(range(1, len(gurjit_dist_list) + 1))
-#
-# # Create bar chart
-# plt.bar(x_values, gurjit_dist_list)
-# # Create scatter plot
-# # plt.scatter(x_values, gurjit_dist_list)
-# plt.title('candidates bar chart plot/ pH / DSSIM')
-# plt.xlabel('Index')
-# plt.ylabel('distances')
-# plt.grid(True)
-# plt.show()
+gurjit_dist = {}
+gurjit_dist_list = []
+
+for id in ids_dict.keys():
+    gurjit_dist[id] = distance_dicts['temp'][id]
+    gurjit_dist_list.append(distance_dicts['temp'][id])
+
+max_key = max(gurjit_dist, key=gurjit_dist.get)
+max_value = gurjit_dist[max_key]
+print(max_key, max_value)
+
+max_key = min(gurjit_dist, key=gurjit_dist.get)
+max_value = gurjit_dist[max_key]
+print(max_key, max_value)
 
 
+x_values = list(range(1, len(gurjit_dist_list) + 1))
+
+# Create bar chart
+plt.bar(x_values, gurjit_dist_list)
+# Create scatter plot
+# plt.scatter(x_values, gurjit_dist_list)
+plt.title('candidates bar chart plot/ pH / DSSIM')
+plt.xlabel('Index')
+plt.ylabel('distances')
+plt.grid(True)
+plt.show()
+
+
+with open("../Distances/mldsp_candidates_dist_temp.json", 'w') as json_file:
+    json.dump(gurjit_dist, json_file, indent=4)
 
 ############################# distances vs distances
 
@@ -108,43 +110,43 @@ distance_dicts['pH'] = distance_dicts['Sheet1']
 # print(a_b_distance_pH)
 
 ############################ distances withing the clusters
-fragment_length = 100000
-# env = "Temperature"
-env = "pH"
-
-result_folder = f"../exp2/0/fragments_{fragment_length}"
-fasta_file = os.path.join(result_folder, env, f'Extremophiles_{env}.fas')
-
-summary_path = f"../exp2/0/fragments_{fragment_length}/{env}/Extremophiles_{env}_Summary.tsv"
-summary_data = pd.read_csv(summary_path, sep='\t')
-
-id_2_sequences = read_fasta(fasta_file)
-
-# grouped_env = summary_data.groupby(env)
-grouped_env = summary_data.groupby("Domain")
-seq_ids = grouped_env["sequence_id"]
-seq_ids_dict = seq_ids.apply(list).to_dict()
-
-for key in seq_ids_dict.keys():
-    print("here")
-    print(key)
-
-    key_list = {}
-    for n1, id1 in enumerate(list(seq_ids_dict[key])):
-        for n2, id2 in enumerate(list(seq_ids_dict[key])):
-            if id2 == id1:
-                continue
-            if id1+"_"+id2 in distance_dicts['pH']:
-                key_list[id1+"_"+id2] = distance_dicts['pH'][id1+"_"+id2]
-            else:
-                key_list[id1 + "_" + id2] = distance_dicts['pH'][id2 + "_" + id1]
-
-    max_key = max(key_list, key=key_list.get)
-    max_value = key_list[max_key]
-    print("max: ",max_key, max_value)
-
-    max_key = min(key_list, key=key_list.get)
-    max_value = key_list[max_key]
-    print("min: ",max_key, max_value)
+# fragment_length = 100000
+# # env = "Temperature"
+# env = "pH"
+#
+# result_folder = f"../exp2/0/fragments_{fragment_length}"
+# fasta_file = os.path.join(result_folder, env, f'Extremophiles_{env}.fas')
+#
+# summary_path = f"../exp2/0/fragments_{fragment_length}/{env}/Extremophiles_{env}_Summary.tsv"
+# summary_data = pd.read_csv(summary_path, sep='\t')
+#
+# id_2_sequences = read_fasta(fasta_file)
+#
+# # grouped_env = summary_data.groupby(env)
+# grouped_env = summary_data.groupby("Domain")
+# seq_ids = grouped_env["sequence_id"]
+# seq_ids_dict = seq_ids.apply(list).to_dict()
+#
+# for key in seq_ids_dict.keys():
+#     print("here")
+#     print(key)
+#
+#     key_list = {}
+#     for n1, id1 in enumerate(list(seq_ids_dict[key])):
+#         for n2, id2 in enumerate(list(seq_ids_dict[key])):
+#             if id2 == id1:
+#                 continue
+#             if id1+"_"+id2 in distance_dicts['pH']:
+#                 key_list[id1+"_"+id2] = distance_dicts['pH'][id1+"_"+id2]
+#             else:
+#                 key_list[id1 + "_" + id2] = distance_dicts['pH'][id2 + "_" + id1]
+#
+#     max_key = max(key_list, key=key_list.get)
+#     max_value = key_list[max_key]
+#     print("max: ",max_key, max_value)
+#
+#     max_key = min(key_list, key=key_list.get)
+#     max_value = key_list[max_key]
+#     print("min: ",max_key, max_value)
 
 
