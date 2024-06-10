@@ -9,6 +9,7 @@ import os
 from build_signature_dataset import run_fragment_builder
 from supervised_models import run_supervised_classification
 from supervised_models_challenging import run_supervised_classification_challenging
+from tuning import run_supervised_classification_tuning
 
 ENVS = ["Temperature", "pH"]
 ENVS = ["Radio_label"]
@@ -38,7 +39,26 @@ def experiment_task(args, env, exp, fragment_length):
     run_supervised_classification_challenging(PATH, fasta_file, args['max_k'], result_folder, env, exp, args['classifiers'])
     print(f"\n Classification ended (scenario 2).", flush=True)
 
+def hyper_prameter_tuning():
+    print("\n Running the pipeline is started:")
+    # Building the fragments
+    fragment_file = f"{args['exp_type']}/{exp}/fragments_{fragment_length}"
+    print(f"\n Building fragment with length {fragment_length} is started.")
+    run_fragment_builder(PATH, fragment_file, fragment_length, args['whole_genome'], env)
+    print(f"\n Fragment with length {fragment_length} has been created.", flush=True)
+
+        
+    result_folder = f"{PATH}/{args['exp_type']}/{exp}/fragments_{fragment_length}"
+    fasta_file = os.path.join(result_folder, env, f'Extremophiles_{env}.fas')
+    print(f"\n Classification is started (scenario 1).")
+    run_supervised_classification_tuning(fasta_file, args['max_k'], result_folder, env, exp, args['classifiers'])
+    print(f"\n Classification ended (scenario 1).", flush=True)
+    
+    
 def run_pipeline(args):
+    if args["exp_type"] == "tuning":
+        
+        
     if args["exp_type"] == "exp1":
         classifiers = {"SVM": (SVC, {'kernel': 'rbf', 'class_weight': 'balanced', 'C': 10})}
         args['classifiers'] = classifiers
@@ -67,6 +87,8 @@ def run_pipeline(args):
         for future in as_completed(futures):
             future.result()  # You can handle exceptions here if needed
 
+    
+    
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--exp_type', action='store', type=str)
